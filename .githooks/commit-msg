@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# .githooks/commit-msg
+# Thin wrapper — all logic lives in scripts/ci/commit-msg/
+
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+for script in "$ROOT"/scripts/ci/commit-msg/*.sh; do
+  [ -f "$script" ] || continue
+  bash "$script" "$1"
+done

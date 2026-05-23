@@ -1,0 +1,583 @@
+platform: windsurf
+folder: .windsurf
+
+structure:
+  - path: rules/
+    type: dir
+  - path: hooks/
+    type: dir
+  - path: agents/
+    type: dir
+  - path: skills/
+    type: dir
+  - path: workflows/
+    type: dir
+
+  # ── AGENTS.md ──────────────────────────────────────────────────────────────
+  - path: AGENTS.md
+    type: file
+    source: AGENTS.md
+
+  # ── Rules ──────────────────────────────────────────────────────────────────
+  - path: rules/core.md
+    type: file
+    content: |
+      # Rackz Architecture Rules (Always Apply)
+
+      This project is a C++17 Monero fork. Each `src/` layer must not include from
+      layers that depend on it. Higher-level concerns (wallet, RPC, P2P) must never leak
+      into cryptographic or consensus primitives. Violating these rules is a security issue.
+
+      <rules>
+      - `src/crypto/` must have zero imports from wallet/, daemon/, rpc/, or protocol/
+      - `src/ringct/` may depend on src/crypto/ and device/ — no wallet/, daemon/, or protocol/
+      - `src/seraphis_crypto/` is a STUB — READ-ONLY — do not modify without lead sign-off
+      - `src/cryptonote_core/` must not import src/wallet/
+      - `src/net/` must not import cryptonote_core/ or wallet/
+      - `src/p2p/` must not import wallet/
+      - All cross-layer interactions must go through the public header interfaces
+      </rules>
+
+      <violations>
+      <violation>BAD: src/crypto/crypto.cpp includes "wallet/wallet2.h" — crypto must never know about wallet</violation>
+      <violation>BAD: src/cryptonote_core/blockchain.cpp includes "wallet/api/wallet.h" — consensus must not know about wallet</violation>
+      <violation>GOOD: src/rpc/core_rpc_server.cpp includes "cryptonote_core/core.h" — rpc adapts core, that is its job</violation>
+      </violations>
+
+  - path: rules/cpp-best-practices.md
+    type: file
+    content: |
+      # C++ Best Practices (Rackz)
+
+      <checklist>
+      1. [ ] Code formatted with clang-format (`.clang-format` in repo root, 2-space indent)
+      2. [ ] No `using namespace std;` in any header file
+      3. [ ] RAII used for all resource management — no naked new/delete
+      4. [ ] `const` correctness: mark all non-mutating methods and parameters const
+      5. [ ] Pass large objects by const reference, not by value
+      6. [ ] Use `std::optional<T>` for new optional return values (do not mass-migrate legacy `boost::optional`)
+      7. [ ] Prefer `constexpr` and `enum class` for new code; do not change existing unscoped enums
+      8. [ ] Sensitive buffers cleared with `memwipe()` — never `memset()` alone
+      9. [ ] `override` keyword on all virtual method overrides
+      10. [ ] No raw owning pointers without justification — use `std::unique_ptr`
+      </checklist>
+
+      <examples>
+      <example>BAD: `MyClass* obj = new MyClass(); ... delete obj;` — manual memory, leaks on exception</example>
+      <example>GOOD: `auto obj = std::make_unique<MyClass>();` — RAII, exception-safe</example>
+      <example>BAD: `void f(std::string s)` when s is not modified — unnecessary copy</example>
+      <example>GOOD: `void f(const std::string& s)` — zero-copy const reference</example>
+      <example>BAD: `#define MAX_PEERS 32` — macro, no type safety</example>
+      <example>GOOD: `constexpr uint32_t MAX_PEERS = 32;` — typed, scoped</example>
+      </examples>
+
+  - path: rules/security.md
+    type: file
+    content: |
+      # Security Rules (Always Apply)
+
+      <rules>
+      1. [ ] No hardcoded keys, mnemonics, seeds, passwords, or API tokens in source
+      2. [ ] Sensitive buffers wiped with `memwipe()` or `OPENSSL_cleanse()` before free
+      3. [ ] Never log private view keys, spend keys, or decrypted transaction amounts
+      4. [ ] All user-facing input (RPC, P2P, wallet CLI) length-checked and bounded before use
+      5. [ ] Cryptographic nonces must be random — never reused, never sequential
+      6. [ ] Do not modify src/crypto/ or src/ringct/ without explicit human cryptographic review
+      7. [ ] Do not change cryptonote_config.h or src/hardforks/ without a proposal document
+      8. [ ] Integer arithmetic on monetary values: use checked arithmetic, check for overflow
+      </rules>
+
+      <examples>
+      <example>BAD: `memset(key_buf, 0, sizeof(key_buf));` — compiler may optimise away</example>
+      <example>GOOD: `memwipe(key_buf, sizeof(key_buf));` — uses volatile write, not optimised</example>
+      <example>BAD: `MINFO("View key: " << epee::string_tools::pod_to_hex(vk));` — logs sensitive data</example>
+      <example>GOOD: `MINFO("Wallet opened successfully for address: " << address_short);`</example>
+      </examples>
+
+  # ── Agents ─────────────────────────────────────────────────────────────────
+  - path: agents/architect.md
+    type: file
+    content: |
+      # Architect Agent
+
+      You are a staff-level C++ engineer specialising in systems programming, blockchain consensus,
+      and cryptographic protocol design. Your role is to enforce clean layer separation and correct
+      dependency direction in the rackz codebase. You are direct — surface architectural issues
+      clearly rather than softening findings.
+
+      <investigate_before_answering>
+      Never speculate about #include chains you have not verified. Read the relevant .cpp/.h files
+      before making architectural assessments. Use grep to trace include paths.
+      </investigate_before_answering>
+
+      <architecture_checklist>
+      When reviewing or designing code:
+      1. [ ] src/crypto/ has zero includes from wallet/, daemon/, rpc/, protocol/
+      2. [ ] src/ringct/ depends only on src/crypto/ and device/ (hardware wallet abstraction)
+      3. [ ] src/seraphis_crypto/ is untouched (stub — not ready for modification)
+      4. [ ] src/cryptonote_core/ does not include src/wallet/
+      5. [ ] src/net/ and src/p2p/ do not include wallet/ or cryptonote_core/ consensus internals
+      6. [ ] New classes use RAII — no manual new/delete
+      7. [ ] Thread-safety preconditions documented on any shared state
+      8. [ ] No business logic leaked into rpc/ adapters beyond serialisation
+      </architecture_checklist>
+
+  - path: agents/reviewer.md
+    type: file
+    content: |
+      # Reviewer Agent
+
+      You are a senior C++ engineer performing thorough code reviews on a security-critical
+      blockchain codebase. Focus on correctness, architecture compliance, idiomatic C++17,
+      memory safety, and consensus correctness. Report all findings with file, line, and
+      suggested fix.
+
+      <investigate_before_answering>
+      Read all referenced files and related headers before forming review conclusions.
+      Never report speculative issues — only findings backed by evidence in the code.
+      </investigate_before_answering>
+
+      <review_checklist>
+      For every review:
+      1. [ ] No forbidden #include patterns across layer boundaries
+      2. [ ] All raw owning pointers justified or replaced with smart pointers
+      3. [ ] const correctness on all non-mutating methods
+      4. [ ] No `using namespace std;` in headers
+      5. [ ] Sensitive buffers wiped with memwipe(), not memset()
+      6. [ ] No signed integer overflow on monetary or block-height arithmetic
+      7. [ ] No hardcoded secrets, keys, or seeds
+      8. [ ] Every new public function in a header has a Doxygen comment
+      9. [ ] Tests exist for new non-trivial logic
+      10. [ ] Thread-safety preconditions documented where locks are not self-evident
+      </review_checklist>
+
+  - path: agents/security.md
+    type: file
+    content: |
+      # Security Analyst Agent
+
+      You are a security engineer with expertise in C++ memory safety, cryptographic protocol
+      correctness, and blockchain-specific attack vectors (double-spend, timing attacks,
+      transaction malleability, key exposure). Every finding must include: file, line,
+      vulnerability class, and specific remediation.
+
+      <investigate_before_answering>
+      Read the actual code before claiming a vulnerability. Never assume an issue
+      without evidence in the diff or file.
+      </investigate_before_answering>
+
+      <security_checklist>
+      1. [ ] No hardcoded keys, seeds, mnemonics, or API tokens
+      2. [ ] Sensitive memory wiped with memwipe() / OPENSSL_cleanse() before free
+      3. [ ] No private key or view key material in log output
+      4. [ ] All RPC and P2P input length-validated before processing
+      5. [ ] Cryptographic nonces not reused (check RandomX seed, key images)
+      6. [ ] Integer overflow checks on amount arithmetic (CryptoNote uses uint64)
+      7. [ ] src/crypto/ and src/ringct/ not modified without human cryptographic review
+      8. [ ] No use-after-free or double-free patterns (prefer RAII)
+      9. [ ] Constant-time comparison for secret data (no early-exit comparisons)
+      10. [ ] Submodule commits pinned and verified (randomx, supercop, gtest)
+      </security_checklist>
+
+  - path: agents/performance.md
+    type: file
+    content: |
+      # Performance Optimisation Agent
+
+      You are a C++ performance engineer. Identify real, measurable problems backed by profiling
+      or benchmarks — not speculative micro-optimisations. Prefer algorithmic improvements.
+      This codebase processes blockchain transactions at scale; hot paths include tx validation,
+      ring signature verification, and LMDB reads.
+
+      <investigate_before_answering>
+      Profile or benchmark before claiming a performance problem. Read the actual code path.
+      </investigate_before_answering>
+
+      <performance_checklist>
+      1. [ ] No repeated LMDB round-trips in loops — batch reads where possible
+      2. [ ] No unnecessary copies of large structs (crypto::hash, rct::key) — pass by const ref
+      3. [ ] Ring signature verification parallelised where possible (check thread pool usage)
+      4. [ ] No memory allocation in hot validation paths — consider stack or pool allocation
+      5. [ ] MLOCK used appropriately for key material (mlocker.h)
+      6. [ ] Benchmarks exist for critical paths (tests/performance/)
+      7. [ ] Use reserve() on vectors when final size is known
+      8. [ ] Avoid std::string construction in logging hot paths — use string_view
+      </performance_checklist>
+
+  - path: agents/documentation.md
+    type: file
+    content: |
+      # Documentation Generator Agent
+
+      You ensure code is self-documenting through Doxygen and that architecture is communicated
+      clearly. The rackz codebase is a security-critical blockchain — documentation of invariants
+      and preconditions is essential for reviewers.
+
+      <checklist>
+      1. [ ] All public functions in headers have Doxygen comments (/** @brief ... */)
+      2. [ ] Complex cryptographic algorithms have inline comments explaining "why", not "what"
+      3. [ ] Thread-safety preconditions documented (e.g. "Requires blockchain lock held")
+      4. [ ] Consensus invariants documented as assertions or comments
+      5. [ ] No commented-out code — remove or replace with a TODO referencing an issue
+      6. [ ] AGENTS.md kept up-to-date with architecture changes
+      7. [ ] CHANGELOG.md entry added for any fork-specific protocol change
+      </checklist>
+
+      <examples>
+      <example>BAD: `// verify tx` — does not explain invariants or assumptions</example>
+      <example>GOOD: `/** @brief Verifies transaction inputs sum >= outputs sum + fee. Requires tx in canonical form. */`</example>
+      </examples>
+
+  - path: agents/test-coverage.md
+    type: file
+    content: |
+      # Test Coverage Agent
+
+      You are a C++ testing expert focused on semantic test quality, not just line coverage.
+      A test that executes code but asserts nothing is worthless. For a consensus-critical
+      codebase, tests must catch real protocol bugs.
+
+      <test_quality_checklist>
+      1. [ ] Tests assert specific output values, not just that no error occurred
+      2. [ ] Consensus edge cases tested: empty blocks, max ring size, duplicate key images
+      3. [ ] Error paths explicitly tested (invalid tx, double-spend attempts)
+      4. [ ] Tests are deterministic — no random seeds without fixture, no time-based logic
+      5. [ ] Cryptographic tests use known answer tests (KATs) from reference implementations
+      6. [ ] Unit tests in tests/unit_tests/ alongside the module being tested
+      7. [ ] Consensus changes have a chaingen scenario in tests/core_tests/
+      8. [ ] Fuzz targets updated when new input-parsing code is added (tests/fuzz/)
+      9. [ ] Coverage ≥75% on src/crypto/ and src/ringct/
+      10. [ ] make debug-test passes before any PR
+      </test_quality_checklist>
+
+  - path: agents/dependency.md
+    type: file
+    content: |
+      # Dependency Management Agent
+
+      You ensure dependencies are secure, pinned, and minimal.
+
+      <investigate_before_answering>
+      Check .gitmodules, contrib/depends/, and CMakeLists.txt before making recommendations.
+      </investigate_before_answering>
+
+      <checklist>
+      1. [ ] Submodule commits pinned (external/randomx, external/supercop, external/gtest)
+      2. [ ] No new system dependencies added without updating contrib/depends/ and Dockerfile
+      3. [ ] CMake minimum version not lowered without reason
+      4. [ ] No vendored copy of a library that is already in external/
+      5. [ ] Boost usage reviewed — prefer std:: equivalents where C++17 provides them
+      6. [ ] No new Boost components added without a deprecation plan
+      </checklist>
+
+  # ── Skills ─────────────────────────────────────────────────────────────────
+  - path: skills/cpp-arch-review/SKILL.md
+    type: file
+    content: |
+      ---
+      name: cpp-arch-review
+      description: Reviews C++ code for rackz layer boundary compliance
+      ---
+
+      # C++ Architecture Review Skill
+
+      This project's security depends on layer isolation. src/crypto/ and src/ringct/ must never
+      know about wallet, daemon, or RPC concerns. Violations are security issues, not just
+      style issues.
+
+      <checklist>
+      1. [ ] src/crypto/ includes: only stdlib, boost headers, and src/crypto/ siblings
+      2. [ ] src/ringct/ includes: only src/crypto/, device/, and stdlib/boost
+      3. [ ] src/cryptonote_core/ includes: no src/wallet/ headers
+      4. [ ] src/net/ and src/p2p/ include: no src/wallet/ or cryptonote_core consensus headers
+      5. [ ] New code in rpc/ is an adapter — serialises core types, adds no business logic
+      6. [ ] src/seraphis_crypto/ is unmodified (stub)
+      </checklist>
+
+      For each violation: quote the #include line, state which rule it breaks, suggest the fix.
+
+  - path: skills/memory-safety/SKILL.md
+    type: file
+    content: |
+      ---
+      name: cpp-memory-safety
+      description: Checks C++ memory safety patterns in rackz
+      ---
+
+      # Memory Safety Skill
+
+      In a security-critical C++ codebase, memory errors are exploitable vulnerabilities.
+      This skill enforces RAII, smart pointer usage, and safe cryptographic memory handling.
+
+      <checklist>
+      1. [ ] No naked owning `new` without a corresponding RAII wrapper
+      2. [ ] `std::unique_ptr` / `std::shared_ptr` used for heap-allocated objects
+      3. [ ] Sensitive key material stored in `epee::mlocked_memory` or wiped with `memwipe()`
+      4. [ ] No use-after-move (check moved-from objects are not accessed)
+      5. [ ] Buffer sizes validated before memcpy / pointer arithmetic
+      6. [ ] No `reinterpret_cast` without a clear justification comment
+      7. [ ] Iterators invalidated after container modification not used
+      </checklist>
+
+      <examples>
+      <example>BAD: `char* buf = new char[len]; ... delete[] buf;` — leaks on exception</example>
+      <example>GOOD: `std::vector<char> buf(len);` — RAII, exception-safe</example>
+      <example>BAD: `memset(secret, 0, sizeof(secret));` — may be optimised away</example>
+      <example>GOOD: `memwipe(secret, sizeof(secret));` — volatile write, not optimised</example>
+      </examples>
+
+  - path: skills/crypto-review/SKILL.md
+    type: file
+    content: |
+      ---
+      name: cpp-crypto-review
+      description: Reviews cryptographic code for correctness and safety
+      ---
+
+      # Cryptographic Code Review Skill
+
+      Cryptographic bugs are silent and catastrophic. This skill enforces best practices
+      for the rackz crypto and ringct layers. All findings require human expert review.
+
+      <checklist>
+      1. [ ] Nonces are cryptographically random — never sequential, never reused
+      2. [ ] Key comparison uses constant-time functions — no early-exit byte comparison
+      3. [ ] Scalar operations validated to be in field (mod l where required)
+      4. [ ] Point encoding/decoding validates the result is on the curve
+      5. [ ] No redundant nonce or key generation in tight loops
+      6. [ ] Known-answer tests (KATs) exist for any new cryptographic primitive
+      7. [ ] No deviation from upstream Monero cryptographic primitives without justification
+      8. [ ] memwipe() called on all intermediate key material on the stack
+      </checklist>
+
+  - path: skills/concurrency/SKILL.md
+    type: file
+    content: |
+      ---
+      name: cpp-concurrency
+      description: Validates C++ concurrency patterns in rackz
+      ---
+
+      # Concurrency Skill
+
+      The rackz daemon is multithreaded. Race conditions on blockchain or tx-pool state are
+      consensus-critical bugs. This skill identifies missing locks, lock order issues, and
+      unsafe shared state.
+
+      <checklist>
+      1. [ ] All access to blockchain state guarded by the blockchain lock
+      2. [ ] epee::critical_section or std::mutex unlocked in all code paths (use RAII lock guard)
+      3. [ ] No lock-free shared mutation without explicit memory ordering justification
+      4. [ ] No std::thread::detach — all threads joinable and shutdown-safe
+      5. [ ] Condition variables checked in a loop (spurious wakeup protection)
+      6. [ ] No recursive lock acquisition unless using std::recursive_mutex explicitly
+      7. [ ] ThreadSanitiser (SANITIZE=ON) passes on test suite
+      </checklist>
+
+      <examples>
+      <example>BAD: `m_blockchain_lock.lock(); ... if(cond) return; m_blockchain_lock.unlock();` — unlock skipped on early return</example>
+      <example>GOOD: `CRITICAL_REGION_LOCAL(m_blockchain_lock);` — epee RAII macro, unlocks on any exit</example>
+      </examples>
+
+  - path: skills/test-coverage/SKILL.md
+    type: file
+    content: |
+      ---
+      name: cpp-test-coverage
+      description: Analyses test coverage and suggests improvements for rackz
+      ---
+
+      # Test Coverage Skill
+
+      Coverage numbers are a floor. The goal is tests that catch real consensus and
+      cryptographic bugs. For a blockchain codebase, this means adversarial test cases:
+      double-spends, malformed transactions, boundary ring sizes, overflow amounts.
+
+      <checklist>
+      1. [ ] Tests assert specific values — not just that the function returned true
+      2. [ ] Consensus edge cases: max block size, empty tx, duplicate key image
+      3. [ ] Cryptographic tests use reference vectors from Monero test suite
+      4. [ ] Error paths explicitly tested (corrupt LMDB, malformed P2P message)
+      5. [ ] No time-dependent or random-seed-dependent assertions without seeding
+      6. [ ] Coverage ≥75% on src/crypto/ and src/ringct/
+      7. [ ] New fuzz target added when new binary parsing code is introduced
+      </checklist>
+
+  # ── Hooks (Windsurf Cascade Hooks) ─────────────────────────────────────────
+  - path: hooks.json
+    type: file
+    content: |
+      {
+        "hooks": {
+          "pre_write_code": [
+            {
+              "command": ".windsurf/hooks/pre-write.sh",
+              "show_output": true
+            }
+          ],
+          "post_write_code": [
+            {
+              "command": ".windsurf/hooks/post-write-code.sh",
+              "show_output": false
+            }
+          ],
+          "pre_run_command": [
+            {
+              "command": ".windsurf/hooks/pre-run-command.sh",
+              "show_output": true
+            }
+          ],
+          "pre_user_prompt": [
+            {
+              "command": ".windsurf/hooks/pre-user-prompt.sh",
+              "show_output": true
+            }
+          ],
+          "post_cascade_response": [
+            {
+              "command": ".windsurf/hooks/post-cascade-response.sh",
+              "show_output": false
+            }
+          ]
+        }
+      }
+
+  - path: hooks/pre-user-prompt.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Pre-user-prompt: inject project context before every LLM reasoning pass.
+      ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+      if [ -f "$ROOT/scripts/llm/hooks/pre-user-prompt-context.sh" ]; then
+        bash "$ROOT/scripts/llm/hooks/pre-user-prompt-context.sh"
+      fi
+      exit 0
+
+  - path: hooks/pre-write.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Pre-write: validate architecture compliance and block red-zone edits.
+      set -euo pipefail
+      ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+      input=$(cat)
+      file_path=$(echo "$input" | jq -r '.tool_info.file_path // .file_path // empty' 2>/dev/null || echo "")
+      [ -n "$file_path" ] || exit 0
+
+      # Block red-zone writes
+      if [ -f "$ROOT/scripts/llm/hooks/pre-write-crypto-gate.sh" ]; then
+        echo "$input" | bash "$ROOT/scripts/llm/hooks/pre-write-crypto-gate.sh" "$file_path" || exit $?
+      fi
+
+      # Inject layer context
+      if [ -f "$ROOT/scripts/llm/hooks/pre-write-arch-compliance.sh" ]; then
+        bash "$ROOT/scripts/llm/hooks/pre-write-arch-compliance.sh" "$file_path" 2>/dev/null || true
+      fi
+
+      # Block protected build files
+      protected=("CMakeLists.txt" ".clang-format" ".clang-tidy")
+      for p in "${protected[@]}"; do
+        if [ "$(basename "$file_path")" = "$p" ]; then
+          echo "warning: $p is a build/lint config file — edit carefully."
+        fi
+      done
+
+      exit 0
+
+  - path: hooks/post-write-code.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Post-write: check format and suggest tests after a C++ file is written.
+      # Format is NOT auto-applied. Run 'clang-format -i <file>' deliberately.
+      set -euo pipefail
+      ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+      input=$(cat)
+      file_path=$(echo "$input" | jq -r '.tool_info.file_path // .file_path // empty' 2>/dev/null || echo "")
+      [ -n "$file_path" ] || exit 0
+
+      # Format check — warn only, never auto-fix
+      if [[ "$file_path" == *.cpp ]] || [[ "$file_path" == *.h ]] || \
+         [[ "$file_path" == *.hpp ]] || [[ "$file_path" == *.cc ]]; then
+        if command -v clang-format >/dev/null 2>&1 && [ -f "$ROOT/.clang-format" ]; then
+          if ! clang-format --dry-run -Werror "$file_path" 2>/dev/null; then
+            echo "note: $file_path needs formatting — run: clang-format -i $file_path"
+          fi
+        fi
+      fi
+
+      # Suggest tests for new implementation files
+      if [ -f "$ROOT/scripts/llm/hooks/post-write-test-suggestion.sh" ]; then
+        bash "$ROOT/scripts/llm/hooks/post-write-test-suggestion.sh" "$file_path" 2>/dev/null || true
+      fi
+
+      # Doxygen reminder for headers
+      if [ -f "$ROOT/scripts/llm/hooks/post-write-doc-reminder.sh" ]; then
+        bash "$ROOT/scripts/llm/hooks/post-write-doc-reminder.sh" "$file_path" 2>/dev/null || true
+      fi
+
+      exit 0
+
+  - path: hooks/pre-run-command.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Pre-run-command: block dangerous shell commands.
+      set -euo pipefail
+      input=$(cat)
+      cmd=$(echo "$input" | jq -r '.tool_info.command_line // empty' 2>/dev/null || echo "")
+      [ -n "$cmd" ] || exit 0
+
+      dangerous=(
+        "rm -rf /" "rm -rf /home" "rm -rf /usr" "rm -rf /etc"
+        "dd if=" "mkfs." ":(){:|:&};:" "> /dev/sd"
+        "git push --force" "git push -f"
+        "chmod -R 777 /" "chown -R"
+      )
+      for pattern in "${dangerous[@]}"; do
+        if [[ "$cmd" == *"$pattern"* ]]; then
+          echo "error: Blocked dangerous command: $cmd"
+          echo "Pattern: $pattern"
+          exit 2
+        fi
+      done
+
+      # Warn on potentially destructive
+      warn_patterns=("rm -rf" "git push" "make clean-all")
+      for pattern in "${warn_patterns[@]}"; do
+        if [[ "$cmd" == *"$pattern"* ]]; then
+          echo "warning: Potentially destructive command: $cmd"
+        fi
+      done
+
+      exit 0
+
+  - path: hooks/post-cascade-response.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Post-cascade-response: check format of C++ files modified during this response.
+      # Format is NOT auto-applied. Run 'make format' deliberately when ready.
+      set -euo pipefail
+      ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+      cd "$ROOT"
+
+      if ! command -v clang-format >/dev/null 2>&1 || [ ! -f ".clang-format" ]; then
+        exit 0
+      fi
+
+      needs_format=()
+      while IFS= read -r f; do
+        [ -f "$f" ] || continue
+        if ! clang-format --dry-run -Werror "$f" 2>/dev/null; then
+          needs_format+=("$f")
+        fi
+      done < <(git diff --name-only --diff-filter=M 2>/dev/null | grep -E '\.(cpp|cxx|cc|h|hpp|hxx)$')
+
+      if [ ${#needs_format[@]} -gt 0 ]; then
+        echo "note: ${#needs_format[@]} file(s) need formatting. Run deliberately:"
+        for f in "${needs_format[@]}"; do echo "  clang-format -i $f"; done
+        echo "  or: make format"
+      fi
+
+      exit 0

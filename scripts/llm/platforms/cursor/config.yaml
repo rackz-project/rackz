@@ -1,0 +1,344 @@
+platform: cursor
+folder: .cursor
+
+structure:
+  - path: rules/
+    type: dir
+  - path: hooks/
+    type: dir
+  - path: agents/
+    type: dir
+  - path: skills/
+    type: dir
+
+  # ── AGENTS.md ──────────────────────────────────────────────────────────────
+  - path: AGENTS.md
+    type: file
+    source: AGENTS.md
+
+  # ── Rules (.mdc format — Cursor uses alwaysApply + globs) ─────────────────
+  - path: rules/core-always.mdc
+    type: file
+    content: |
+      ---
+      description: Rackz core architecture rules
+      globs: ["src/**/*.cpp", "src/**/*.h", "src/**/*.hpp"]
+      alwaysApply: true
+      ---
+
+      # Rackz Architecture Rules (Always Apply)
+
+      <rules>
+      - `src/crypto/` must not include wallet/, daemon/, rpc/, or protocol/ headers
+      - `src/ringct/` may depend on src/crypto/ and device/ — no wallet, daemon, or protocol
+      - `src/seraphis_crypto/` is a STUB — READ-ONLY — do not modify without lead sign-off
+      - `src/cryptonote_core/` must not include src/wallet/
+      - `src/net/` must not include cryptonote_core/ or wallet/
+      - `src/p2p/` must not include wallet/
+      - Sensitive buffers must be wiped with memwipe(), not memset()
+      - No hardcoded keys, mnemonics, seeds, or credentials
+      </rules>
+
+  - path: rules/cpp-best-practices.mdc
+    type: file
+    content: |
+      ---
+      description: C++17 best practices for rackz
+      globs: ["src/**/*.cpp", "src/**/*.h", "src/**/*.hpp"]
+      alwaysApply: false
+      ---
+
+      # C++ Best Practices
+
+      <checklist>
+      1. [ ] Formatted with clang-format (2-space indent, see .clang-format)
+      2. [ ] No `using namespace std;` in headers
+      3. [ ] RAII for all resource management — no naked new/delete
+      4. [ ] const correctness on all non-mutating methods and parameters
+      5. [ ] Large objects passed by const reference, not by value
+      6. [ ] std::optional<T> for new optional return values (do not mass-migrate legacy boost::optional)
+      7. [ ] constexpr and enum class preferred for new code; do not change existing unscoped enums
+      8. [ ] memwipe() for sensitive buffer clearing — never memset() alone
+      9. [ ] override keyword on all virtual overrides
+      10. [ ] std::unique_ptr for heap-allocated ownership
+      </checklist>
+
+      <examples>
+      <example>BAD: `MyObj* p = new MyObj(); ... delete p;` — leaks on exception</example>
+      <example>GOOD: `auto p = std::make_unique<MyObj>();` — RAII, exception-safe</example>
+      <example>BAD: `void f(std::string s)` — unnecessary copy of argument</example>
+      <example>GOOD: `void f(const std::string& s)` — zero-copy const reference</example>
+      <example>BAD: `memset(secret, 0, len);` — compiler may optimise away</example>
+      <example>GOOD: `memwipe(secret, len);` — volatile write, guaranteed</example>
+      </examples>
+
+  - path: rules/security.mdc
+    type: file
+    content: |
+      ---
+      description: Security rules for rackz
+      globs: ["**/*.cpp", "**/*.h", "**/*.hpp"]
+      alwaysApply: true
+      ---
+
+      # Security Rules (Always Apply)
+
+      <rules>
+      1. [ ] No hardcoded keys, mnemonics, seeds, passwords, or tokens
+      2. [ ] Sensitive buffers wiped with memwipe() or OPENSSL_cleanse() before free
+      3. [ ] Never log private view keys, spend keys, or decrypted tx amounts
+      4. [ ] All RPC and P2P input length-checked and bounded before use
+      5. [ ] src/crypto/ and src/ringct/ require human cryptographic review before any change
+      6. [ ] cryptonote_config.h and src/hardforks/ require a proposal document before change
+      7. [ ] Integer arithmetic on amounts uses overflow-safe operations
+      </rules>
+
+      <examples>
+      <example>BAD: `MINFO("View key: " << vk_hex);` — logs sensitive key material</example>
+      <example>GOOD: `MINFO("Wallet loaded for address prefix: " << addr_prefix);`</example>
+      <example>BAD: `memset(key, 0, sizeof(key));` — may be optimised away by compiler</example>
+      <example>GOOD: `memwipe(key, sizeof(key));`</example>
+      </examples>
+
+  # ── Agents ─────────────────────────────────────────────────────────────────
+  - path: agents/architect.md
+    type: file
+    content: |
+      # Architect Agent
+
+      You are a staff-level C++ engineer specialising in blockchain consensus and cryptographic
+      protocol design. Enforce layer separation and correct dependency direction. Read files
+      before making architectural assessments — never speculate about #include chains.
+
+      <architecture_checklist>
+      1. [ ] src/crypto/ has zero includes from wallet/, daemon/, rpc/, protocol/
+      2. [ ] src/ringct/ depends only on src/crypto/
+      3. [ ] src/seraphis_crypto/ is untouched (stub)
+      4. [ ] src/cryptonote_core/ does not include src/wallet/
+      5. [ ] src/net/ and src/p2p/ do not include wallet/ or consensus internals
+      6. [ ] New classes use RAII — no manual new/delete
+      7. [ ] Thread-safety preconditions documented on shared state
+      8. [ ] rpc/ adapters only serialise — no business logic
+      </architecture_checklist>
+
+  - path: agents/reviewer.md
+    type: file
+    content: |
+      # Reviewer Agent
+
+      Senior C++ engineer reviewing security-critical blockchain code. Focus on correctness,
+      architecture compliance, memory safety, and consensus correctness. Report file, line,
+      and fix for every finding.
+
+      <review_checklist>
+      1. [ ] No forbidden #include patterns across layer boundaries
+      2. [ ] No naked owning pointers without RAII wrapper
+      3. [ ] const correctness on all non-mutating methods
+      4. [ ] No `using namespace std;` in headers
+      5. [ ] Sensitive buffers wiped with memwipe()
+      6. [ ] No signed integer overflow on monetary or height arithmetic
+      7. [ ] No hardcoded secrets, keys, or seeds
+      8. [ ] Public header functions have Doxygen comments
+      9. [ ] Tests exist for new non-trivial logic
+      10. [ ] Thread-safety documented where not self-evident
+      </review_checklist>
+
+  - path: agents/security.md
+    type: file
+    content: |
+      # Security Analyst Agent
+
+      Security engineer with C++ memory safety, cryptographic protocol, and blockchain
+      attack vector expertise. Every finding: file, line, vulnerability class, remediation.
+
+      <security_checklist>
+      1. [ ] No hardcoded keys, seeds, mnemonics, or tokens
+      2. [ ] Sensitive memory wiped with memwipe() before free
+      3. [ ] No key material in log output
+      4. [ ] All RPC/P2P input length-validated before processing
+      5. [ ] Cryptographic nonces never reused
+      6. [ ] Integer overflow checks on amount arithmetic (uint64)
+      7. [ ] src/crypto/ and src/ringct/ not changed without human cryptographic review
+      8. [ ] No use-after-free or double-free (prefer RAII)
+      9. [ ] Constant-time comparison for secret data
+      10. [ ] Submodule commits pinned and verified
+      </security_checklist>
+
+  # ── Hooks (Cursor hooks.json) ───────────────────────────────────────────────
+  - path: hooks.json
+    type: file
+    content: |
+      {
+        "hooks": {
+          "beforeReadFile": [
+            {
+              "command": ".cursor/hooks/before-read-file.sh",
+              "matcher": { "file_pattern": "src/**/*.{cpp,h,hpp}" }
+            }
+          ],
+          "beforeFileEdit": [
+            {
+              "command": ".cursor/hooks/before-file-edit.sh",
+              "failClosed": true,
+              "matcher": { "file_pattern": "src/**/*.{cpp,h,hpp,cc}" }
+            }
+          ],
+          "afterFileEdit": [
+            {
+              "command": ".cursor/hooks/after-file-edit.sh",
+              "matcher": { "file_pattern": "src/**/*.{cpp,h,hpp,cc}" }
+            }
+          ],
+          "beforeShellExecution": [
+            {
+              "command": ".cursor/hooks/before-shell-execution.sh",
+              "failClosed": true
+            }
+          ],
+          "beforeSubmitPrompt": [
+            {
+              "command": ".cursor/hooks/before-submit-prompt.sh"
+            }
+          ],
+          "afterAgentResponse": [
+            {
+              "command": ".cursor/hooks/after-agent-response.sh"
+            }
+          ]
+        }
+      }
+
+  - path: hooks/before-read-file.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Identify src/ layer when a file is opened.
+      file_path=$(echo "$1" | jq -r '.file_path // empty' 2>/dev/null || echo "")
+      [ -n "$file_path" ] || exit 0
+
+      if [[ "$file_path" == */src/crypto/* ]];          then echo "Layer: crypto (red zone — read only unless confirmed)";
+      elif [[ "$file_path" == */src/ringct/* ]];         then echo "Layer: ringct (red zone — read only unless confirmed)";
+      elif [[ "$file_path" == */src/seraphis_crypto/* ]]; then echo "Layer: seraphis_crypto (STUB — do not modify)";
+      elif [[ "$file_path" == */src/cryptonote_core/* ]]; then echo "Layer: cryptonote_core (consensus)";
+      elif [[ "$file_path" == */src/wallet/* ]];         then echo "Layer: wallet (yellow zone — test after editing)";
+      elif [[ "$file_path" == */src/rpc/* ]];            then echo "Layer: rpc (adapter — serialise only)";
+      elif [[ "$file_path" == */src/p2p/* ]];            then echo "Layer: p2p (yellow zone)";
+      fi
+      exit 0
+
+  - path: hooks/before-file-edit.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Block red-zone writes and inject arch context before edit.
+      set -euo pipefail
+      ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+      input=$(cat)
+      file_path=$(echo "$input" | jq -r '.file_path // empty' 2>/dev/null || echo "")
+      [ -n "$file_path" ] || exit 0
+
+      # Crypto gate
+      if [ -f "$ROOT/scripts/llm/hooks/pre-write-crypto-gate.sh" ]; then
+        echo "$input" | bash "$ROOT/scripts/llm/hooks/pre-write-crypto-gate.sh" "$file_path" || exit $?
+      fi
+
+      # Arch compliance context
+      if [ -f "$ROOT/scripts/llm/hooks/pre-write-arch-compliance.sh" ]; then
+        bash "$ROOT/scripts/llm/hooks/pre-write-arch-compliance.sh" "$file_path" 2>/dev/null || true
+      fi
+
+      exit 0
+
+  - path: hooks/after-file-edit.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Check format after file edit — warn only, never auto-fix.
+      # Run 'clang-format -i <file>' deliberately when formatting is needed.
+      set -euo pipefail
+      ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+      input=$(cat)
+      file_path=$(echo "$input" | jq -r '.file_path // empty' 2>/dev/null || echo "")
+      [ -n "$file_path" ] || exit 0
+
+      if command -v clang-format >/dev/null 2>&1 && [ -f "$ROOT/.clang-format" ]; then
+        if ! clang-format --dry-run -Werror "$file_path" 2>/dev/null; then
+          echo "note: $file_path needs formatting — run: clang-format -i $file_path"
+        fi
+      fi
+
+      if [ -f "$ROOT/scripts/llm/hooks/post-write-test-suggestion.sh" ]; then
+        bash "$ROOT/scripts/llm/hooks/post-write-test-suggestion.sh" "$file_path" 2>/dev/null || true
+      fi
+
+      if [ -f "$ROOT/scripts/llm/hooks/post-write-doc-reminder.sh" ]; then
+        bash "$ROOT/scripts/llm/hooks/post-write-doc-reminder.sh" "$file_path" 2>/dev/null || true
+      fi
+
+      exit 0
+
+  - path: hooks/before-shell-execution.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Block dangerous shell commands. Output JSON for Cursor.
+      input=$(cat)
+      cmd=$(echo "$input" | jq -r '.command // empty' 2>/dev/null || echo "")
+      [ -n "$cmd" ] || { echo '{"permission": "allow"}'; exit 0; }
+
+      dangerous=("rm -rf /" "dd if=" "mkfs" ":(){:|:&};:" "chmod -R 777" "> /dev/sd")
+      for d in "${dangerous[@]}"; do
+        if [[ "$cmd" == *"$d"* ]]; then
+          jq -n --arg c "$cmd" '{permission:"deny",user_message:"Blocked: \($c)",agent_message:"Dangerous pattern detected"}'
+          exit 0
+        fi
+      done
+
+      protected=("CMakeLists.txt" ".clang-format" ".clang-tidy")
+      for p in "${protected[@]}"; do
+        if [[ "$cmd" == *"$p"* ]] && ([[ "$cmd" == *"rm"* ]] || [[ "$cmd" == *"mv"* ]]); then
+          jq -n --arg f "$p" '{permission:"deny",user_message:"Protected file: \($f)",agent_message:"Build/lint configs must not be deleted or moved."}'
+          exit 0
+        fi
+      done
+
+      echo '{"permission": "allow"}'
+      exit 0
+
+  - path: hooks/before-submit-prompt.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Inject project context before every prompt submission.
+      ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+      if [ -f "$ROOT/scripts/llm/hooks/pre-user-prompt-context.sh" ]; then
+        bash "$ROOT/scripts/llm/hooks/pre-user-prompt-context.sh"
+      fi
+      exit 0
+
+  - path: hooks/after-agent-response.sh
+    type: file
+    content: |
+      #!/usr/bin/env bash
+      # Check format of all modified C++ files after agent response — warn only.
+      # Format is NOT auto-applied. Run 'make format' deliberately when ready.
+      set -euo pipefail
+      ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+      cd "$ROOT"
+      command -v clang-format >/dev/null 2>&1 || exit 0
+      [ -f ".clang-format" ] || exit 0
+
+      needs_format=()
+      while IFS= read -r f; do
+        [ -f "$f" ] || continue
+        if ! clang-format --dry-run -Werror "$f" 2>/dev/null; then
+          needs_format+=("$f")
+        fi
+      done < <(git diff --name-only --diff-filter=M 2>/dev/null | grep -E '\.(cpp|cxx|cc|h|hpp|hxx)$')
+
+      if [ ${#needs_format[@]} -gt 0 ]; then
+        echo "note: ${#needs_format[@]} file(s) need formatting. Run deliberately:"
+        for f in "${needs_format[@]}"; do echo "  clang-format -i $f"; done
+        echo "  or: make format"
+      fi
+      exit 0

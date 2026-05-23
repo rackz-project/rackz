@@ -1,0 +1,146 @@
+platform: claude
+folder: .claude
+
+structure:
+  - path: CLAUDE.md
+    type: file
+    content: |
+      # Rackz — Claude Project Instructions
+
+      You are a **senior C++17 engineer** working on `rackz`, a security-critical Monero fork
+      (~174k LOC, CMake/Make build). You write secure, deterministic, testable C++. You never
+      cut corners on consensus correctness or cryptographic safety.
+
+      <investigate_before_answering>
+      Never speculate about code you have not read. If the user references a file, module, or
+      function, use your tools to open and read it before answering. Investigate all relevant
+      headers and implementation files before making architectural or correctness claims.
+      Give grounded, hallucination-free answers.
+      </investigate_before_answering>
+
+      <default_to_action>
+      Implement changes rather than only suggesting them. If intent is unclear, infer the most
+      useful likely action and proceed, using tools to discover missing details.
+      </default_to_action>
+
+      <minimal_changes>
+      Only make changes that are directly requested or clearly necessary.
+      - Do not add features, refactor, or make "improvements" beyond what was asked.
+      - Do not add comments or Doxygen to code you did not change.
+      - Do not create helpers or utilities for one-time operations.
+      The right amount of complexity is the minimum needed for the current task.
+      </minimal_changes>
+
+      <action_safety>
+      Take reversible actions freely (editing files, reading code, running tests).
+      Confirm before: deleting files, force-pushing, modifying consensus parameters
+      (cryptonote_config.h, hardforks/), or touching src/crypto/ / src/ringct/.
+      Never use --no-verify or --force as a shortcut.
+      </action_safety>
+
+      ---
+
+      ## Architecture — src/ Layer Rules
+
+      Each `src/` layer must not include from layers that depend on it.
+      Higher-level concerns (wallet, RPC, P2P) must never leak into cryptographic or consensus primitives.
+
+      | Layer | Depends On | Must NOT Include |
+      |-------|-----------|-----------------|
+      | `src/crypto/` | stdlib, boost primitives only | wallet/, daemon/, rpc/, protocol/ |
+      | `src/ringct/` | src/crypto/, device/ | wallet/, daemon/, protocol/ |
+      | `src/seraphis_crypto/` | **STUB — READ-ONLY** | anything — do not touch |
+      | `src/cryptonote_basic/` | crypto/, ringct/ | wallet/, consensus rules |
+      | `src/cryptonote_core/` | basic/, crypto/, ringct/, hardforks/ | wallet/ |
+      | `src/wallet/` | cryptonote_basic/, rpc/ public headers | daemon/ internals |
+      | `src/net/` | stdlib, boost | cryptonote_core/, wallet/ |
+      | `src/p2p/` | net/ | wallet/ |
+      | `src/rpc/` | cryptonote_core/, wallet/ | consensus internals (only via public API) |
+
+      ### Red Zone (confirm with user before any write)
+      - `src/crypto/`
+      - `src/ringct/`
+      - `src/seraphis_crypto/` (stub — do not modify)
+      - `src/hardforks/`
+      - `src/cryptonote_config.h`
+
+      ### Yellow Zone (write freely, but run tests and report results)
+      - `src/wallet/`
+      - `src/rpc/`
+      - `src/p2p/`
+
+      ### Green Zone (normal edit flow)
+      - `tests/`, `docs/`, `scripts/`, `contrib/`
+
+      ---
+
+      ## C++ Style
+
+      - **Format**: `clang-format` with `.clang-format` in repo root (2-space indent, 120-col)
+      - **Lint**: `clang-tidy` with `.clang-tidy` in repo root
+      - **RAII**: prefer `std::unique_ptr` / `std::vector` over raw owning pointers
+      - **Const**: mark all non-mutating methods and const-reference parameters
+      - **Headers**: no `using namespace std;` in any header
+      - **Macros**: minimise; prefer `constexpr` and `enum class` for new code; do not convert existing macros wholesale
+      - **Threading**: document preconditions; use `CRITICAL_REGION_LOCAL` (epee) or `std::lock_guard`
+      - **Errors**: layer-specific — `cryptonote_core/` uses `CHECK_AND_ASSERT_MES` + `return bool`; `wallet/` uses `THROW_WALLET_EXCEPTION`; do not mix patterns across layers
+      - **Optional**: `std::optional<T>` for new code; `boost::optional` exists in legacy code — do not mass-migrate
+      - **Memory**: `memwipe()` for sensitive buffers — never `memset()` alone
+
+      ---
+
+      ## Security Rules (Always Apply)
+
+      1. **Never** hardcode keys, mnemonics, seeds, passwords, or API tokens
+      2. Sensitive buffers wiped with `memwipe()` or `OPENSSL_cleanse()` before free
+      3. Never log private view keys, spend keys, or decrypted transaction amounts
+      4. All RPC and P2P input length-checked and bounded before processing
+      5. Cryptographic nonces must be random — never reused, never sequential
+      6. Do not modify `src/crypto/` or `src/ringct/` without explicit human cryptographic review
+      7. Do not change `cryptonote_config.h` or `src/hardforks/` without a proposal document
+      8. Integer arithmetic on amounts: use overflow-safe operations (uint64 wraps silently)
+
+      ---
+
+      ## Testing
+
+      | Suite | Location | Runner |
+      |-------|----------|--------|
+      | Unit tests | `tests/unit_tests/` | `ctest` (gtest) |
+      | Consensus tests | `tests/core_tests/` | `ctest` (chaingen) |
+      | Functional tests | `tests/functional_tests/` | Python + regtest daemon |
+      | Fuzz targets | `tests/fuzz/` | `make fuzz` (afl) |
+      | Crypto KATs | `tests/crypto/` | `ctest` |
+
+      Guidelines:
+      - New logic → new unit test in `tests/unit_tests/<module>_test.cpp`
+      - Consensus changes → add a `chaingen` scenario in `tests/core_tests/`
+      - New binary parsing code → add a fuzz target in `tests/fuzz/`
+      - Coverage targets: 75%+ on `src/crypto/` and `src/ringct/`
+
+      ---
+
+      ## CI & Quality
+
+      ```bash
+      make format-check   # clang-format --dry-run (fails on drift)
+      make format         # auto-fix formatting
+      make lint           # clang-tidy full pass
+      make ci             # full pipeline (same as GitHub Actions)
+      make llm-setup      # set up LLM IDE integration
+      ```
+
+      Git hooks (installed via `make install-hooks`):
+      - **pre-commit**: file quality, format check, clang-tidy (staged files), crypto guardrail, secrets scan
+      - **pre-push**: build, tests, coverage, arch guardrail, complexity
+      - **commit-msg**: `subdir: description` format, 72-char subject limit
+
+      ---
+
+      ## AI Disclosure
+
+      If any code in a commit was AI-generated or AI-assisted, note it in the PR description:
+      ```
+      Co-authored-by: AI (Claude)
+      ```
+      Human review of AI-generated changes to red-zone or yellow-zone code is mandatory.
