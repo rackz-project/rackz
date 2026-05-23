@@ -1,0 +1,48 @@
+# EditorConfig — https://editorconfig.org
+# Matches the Rackz C++ style guide (docs/rackz/STYLE_GUIDE.md)
+# and the .clang-format configuration.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C / C++ — 2-space indent, 120-col soft limit
+[*.{c,cpp,cxx,cc,h,hpp,hxx}]
+indent_style = space
+indent_size = 2
+max_line_length = 120
+
+# CMake
+[CMakeLists.txt]
+indent_style = space
+indent_size = 2
+
+[*.cmake]
+indent_style = space
+indent_size = 2
+
+# Shell scripts
+[*.sh]
+indent_style = space
+indent_size = 2
+
+# Python
+[*.py]
+indent_style = space
+indent_size = 4
+
+# Markdown and text
+[*.md]
+trim_trailing_whitespace = false
+
+# JSON / YAML
+[*.{json,yaml,yml}]
+indent_style = space
+indent_size = 2
+
+# Makefile — tabs required
+[Makefile]
+indent_style = tab

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# .githooks/pre-push
+# Thin wrapper — all logic lives in scripts/ci/pre-push/
+# Pre-push checks are slower (full build, tests, coverage).
+# Skip with: SKIP_PREPUSH=1 git push
+
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [ "${SKIP_PREPUSH:-0}" = "1" ]; then
+  echo "Pre-push checks skipped (SKIP_PREPUSH=1)."
+  exit 0
+fi
+
+for script in "$ROOT"/scripts/ci/pre-push/*.sh; do
+  [ -f "$script" ] || continue
+  bash "$script"
+done

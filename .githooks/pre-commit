@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit
+# Thin wrapper — all logic lives in scripts/ci/pre-commit/
+
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+for script in "$ROOT"/scripts/ci/pre-commit/*.sh; do
+  [ -f "$script" ] || continue
+  bash "$script"
+done

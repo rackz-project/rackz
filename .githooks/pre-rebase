@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# .githooks/pre-rebase
+# Prevents rebasing master onto another branch accidentally.
+
+set -euo pipefail
+
+upstream="$1"
+branch="${2:-}"
+
+if [ "$upstream" = "master" ] || [ "$branch" = "master" ]; then
+  echo "error: Rebasing master is not allowed."
+  echo "  Use a feature branch and open a PR."
+  exit 1
+fi
