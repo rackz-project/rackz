@@ -1,0 +1,67 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Indentation — confirmed 2-space from codebase inspection
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ContinuationIndentWidth: 2
+
+# Line length
+ColumnLimit: 120
+
+# Brace style — Allman confirmed (braces on own line for functions, classes, namespaces, control flow)
+BreakBeforeBraces: Allman
+
+# Pointer and reference alignment — Left style (`T* p`, `T& r`) matches codebase
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# Access modifiers sit at same indent level as the class keyword
+AccessModifierOffset: -2
+
+# Namespaces are indented (content inside namespace { } is indented)
+NamespaceIndentation: All
+
+# Short functions on one line only for inline/empty bodies like `foo(): x() { }`
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortBlocksOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: Inline
+
+# Do NOT sort includes — Monero include order is often load-bearing
+SortIncludes: Never
+SortUsingDeclarations: false
+IncludeBlocks: Preserve
+
+# Alignment — off to minimise churn on existing code
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignConsecutiveMacros: false
+AlignTrailingComments: false
+
+# Packing — pack args/params to avoid massive vertical expansion
+BinPackArguments: true
+BinPackParameters: true
+
+# Template declarations
+AlwaysBreakTemplateDeclarations: Yes
+
+# Constructor initialiser lists
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 2
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+
+# Misc
+SpaceBeforeParens: ControlStatements
+SpacesInAngles: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+Cpp11BracedListStyle: true
+Standard: c++17
+
+# Penalties — prefer keeping function calls together over splitting
+PenaltyReturnTypeOnItsOwnLine: 200
+PenaltyBreakBeforeFirstCallParameter: 100
