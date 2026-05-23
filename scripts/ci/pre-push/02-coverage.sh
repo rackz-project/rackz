@@ -36,6 +36,9 @@ cmake -G "Unix Makefiles" \
   ../.. >/dev/null 2>&1
 
 JOBS=$(nproc 2>/dev/null || echo 4)
+MEM_GB=$(free -g 2>/dev/null | awk "/^Mem:/{print $7}" || echo 4)
+MAX_MEM_JOBS=$(( MEM_GB / 2 )); [ "$MAX_MEM_JOBS" -lt 1 ] && MAX_MEM_JOBS=1
+[ "$JOBS" -gt "$MAX_MEM_JOBS" ] && JOBS="$MAX_MEM_JOBS"
 make -j"$JOBS" >/dev/null 2>&1
 
 lcov --directory . --zerocounters -q
