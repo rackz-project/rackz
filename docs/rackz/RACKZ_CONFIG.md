@@ -388,53 +388,90 @@ once `DEF_MONERO_RELEASE_NAME` and `DEF_MONERO_VERSION` are changed.
 
 ## P2 — DNS Infrastructure
 
-> **Not red-zone.** Disable or replace; leaving Monero's URLs active means
-> Rackz nodes will query Monero's DNS for checkpoints and updates — wrong data.
+> **Not red-zone.** All Monero DNS references have been cleared for initial
+> launch. When Rackz DNS infrastructure exists, restore each location below.
 
-#### Seed nodes — `src/p2p/net_node.h`
+### Already done ✓
+
+| Location | What was done |
+|---|---|
+| `src/p2p/net_node.h` | DNS seed hostnames cleared (empty list) |
+| `src/p2p/net_node.inl` `get_ip_seed_nodes()` | Hardcoded IP seeds cleared |
+| `src/checkpoints/checkpoints.cpp` | All MoneroPulse checkpoint DNS URLs cleared |
+| `src/common/updates.cpp` | MoneroPulse update DNS URLs cleared (empty list) |
+| `src/cryptonote_core/cryptonote_core.cpp` | `--check-updates` default set to `disabled`; software name changed to `rackz` |
+| `src/common/dns_utils.cpp` | DNSSEC probe changed from `updates.moneropulse.org` to neutral `dns.quad9.net` |
+
+---
+
+### Future: when Rackz DNS infrastructure exists
+
+#### 1. Seed nodes — `src/p2p/net_node.h`
 
 ```cpp
-// Current Monero seed nodes:
-const std::vector<std::string> m_seed_nodes_list =
-{ "seeds.moneroseeds.se"
-, "seeds.moneroseeds.ae.org"
-, "seeds.moneroseeds.ch"
-, "seeds.moneroseeds.li"
+// Restore with Rackz seed hostnames:
+const std::vector<std::string> m_seed_nodes_list = {
+    "seeds.rackz.io"
 };
-
-// Replace with Rackz seed node hostnames, or empty for initial launch:
-const std::vector<std::string> m_seed_nodes_list = {};
-// Add IP/DNS entries as seed nodes are stood up.
 ```
 
-#### DNS checkpoints — `src/checkpoints/checkpoints.cpp`
+Also add hardcoded bootstrap IPs in `src/p2p/net_node.inl` `get_ip_seed_nodes()`.
+
+#### 2. DNS checkpoints — `src/checkpoints/checkpoints.cpp`
+
+Three arrays need populating: `mainnet_dns_urls`, `testnet_dns_urls`, `stagenet_dns_urls`.
 
 ```cpp
-// Current — queries Monero's moneropulse infrastructure:
-static const std::vector<std::string> dns_urls = {
-    "checkpoints.moneropulse.se", "checkpoints.moneropulse.org",
-    "checkpoints.moneropulse.net", "checkpoints.moneropulse.co"
+static const std::vector<std::string> mainnet_dns_urls = {
+    "checkpoints.rackz.io"
 };
-// Similarly for testnet_dns_urls and stagenet_dns_urls.
-
-// Options:
-// a) Replace with rackz-equivalent domains when they exist
-// b) Return early / disable DNS checkpoints for initial launch:
-//    if (true) return true; // DNS checkpoints disabled
 ```
 
-#### Software update URLs — `src/common/updates.cpp`
+Serve TXT records in format: `HEIGHT:HASH` with DNSSEC enabled.
+
+#### 3. Software update DNS — `src/common/updates.cpp`
 
 ```cpp
-// Current — queries Monero's moneropulse and getmonero.org:
+// Restore dns_urls with Rackz update domains:
 static const std::vector<std::string> dns_urls = {
-    "updates.moneropulse.org", "updates.moneropulse.net", ...
+    "updates.rackz.io"
 };
-const char *base = user ? "https://downloads.getmonero.org/"
-                        : "https://updates.getmonero.org/";
+```
 
-// Replace with Rackz infrastructure or disable:
-// Return false early to disable update checks until Rackz infra exists.
+TXT record format: `rackz:<buildtag>:<version>:<sha256hash>`
+
+Also update the download base URLs in `get_update_url()` (same file):
+```cpp
+const char *base = user ? "https://downloads.rackz.io/"
+                        : "https://updates.rackz.io/";
+```
+
+And re-enable the check by changing the default in `src/cryptonote_core/cryptonote_core.cpp`:
+```cpp
+// arg_check_updates default: change "disabled" back to "notify"
+```
+
+#### 4. DNS blocklist — `src/p2p/net_node.inl` `update_dns_blocklist()`
+
+Only runs on mainnet when `--enable-dns-blocklist` is passed. Currently still points to `blocklist.moneropulse.*`.
+
+```cpp
+// Replace:
+static const std::vector<std::string> dns_urls = {
+    "blocklist.moneropulse.se", "blocklist.moneropulse.org", ...
+};
+// With:
+static const std::vector<std::string> dns_urls = {
+    "blocklist.rackz.io"
+};
+```
+
+#### 5. DNSSEC probe — `src/common/dns_utils.cpp`
+
+Currently `dns.quad9.net` (neutral). If Rackz hosts its own DNSSEC-signed domain, replace:
+```cpp
+static const char *probe_hostname = "dns.quad9.net";
+// Change to e.g.: "updates.rackz.io"
 ```
 
 #### Donate address — `src/simplewallet/simplewallet.h` + `src/simplewallet/simplewallet.cpp`
