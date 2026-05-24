@@ -91,12 +91,19 @@ namespace config
   uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX  = 26643;  // 0x6813 — "Ri..."
   uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX          = 24340;  // 0x5f14 — "Rs..."
 
-  // Testnet and stagenet prefixes must not collide with mainnet.
-  // Recommend selecting values that produce a visually distinct first character
-  // (e.g. "T..." for testnet, "S..." for stagenet) — verify with:
-  //   https://cryptonotestarter.org/tools.html
-  namespace testnet  { uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 5153; } // TBD
-  namespace stagenet { uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 5163; } // TBD
+  namespace testnet
+  {
+    uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX            = 3745;   // 0x0ea1 — "Tx..."
+    uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 25247;  // 0x629f — "Ti..."
+    uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX         = 22944;  // 0x59a0 — "Ts..."
+  }
+
+  namespace stagenet
+  {
+    uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX            = 4507;   // 0x119b — "Sx..."
+    uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 26009;  // 0x6599 — "Si..."
+    uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX         = 23578;  // 0x5c1a — "Ss..."
+  }
 }
 ```
 
@@ -917,9 +924,21 @@ and `hardforks/hardforks.cpp` stays at upstream values.
 | Integrated | `26643`          | `0x6813`     | `Ri...`       |
 | Subaddress | `24340`          | `0x5f14`     | `Rs...`       |
 
-Testnet (5153) and stagenet (5163) standard prefixes are still provisional —
-verify leading characters with the
-[CryptoNote prefix tool](https://cryptonotestarter.org/tools.html).
+**CONFIRMED** testnet prefixes:
+
+| Type       | Prefix (decimal) | Prefix (hex) | Leading chars |
+| ---------- | ---------------- | ------------ | ------------- |
+| Standard   | `3745`           | `0x0ea1`     | `Tx...`       |
+| Integrated | `25247`          | `0x629f`     | `Ti...`       |
+| Subaddress | `22944`          | `0x59a0`     | `Ts...`       |
+
+**CONFIRMED** stagenet prefixes:
+
+| Type       | Prefix (decimal) | Prefix (hex) | Leading chars |
+| ---------- | ---------------- | ------------ | ------------- |
+| Standard   | `4507`           | `0x119b`     | `Sx...`       |
+| Integrated | `26009`          | `0x6599`     | `Si...`       |
+| Subaddress | `23578`          | `0x5c1a`     | `Ss...`       |
 
 ### Disable DNS checkpoint and update systems on first launch
 
@@ -998,9 +1017,15 @@ All decisions below are confirmed. Do not change without a documented rationale.
 | Parameter                                       | Value                                             | Notes                                                                 |
 | ----------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------- |
 | `CRYPTONOTE_NAME`                               | `"rackz"`                                         | Drives data dir, config, log file names                               |
-| Mainnet address prefix                          | `5141` (0x1415)                                   | Addresses start with "Rx"                                             |
-| Integrated address prefix                       | `26643` (0x6813)                                  | Addresses start with "Ri"                                             |
-| Subaddress prefix                               | `24340` (0x5f14)                                  | Addresses start with "Rs"                                             |
+| Mainnet standard prefix                         | `5141` (0x1415)                                   | `Rx...`                                                               |
+| Mainnet integrated prefix                       | `26643` (0x6813)                                  | `Ri...`                                                               |
+| Mainnet subaddress prefix                       | `24340` (0x5f14)                                  | `Rs...`                                                               |
+| Testnet standard prefix                         | `3745` (0x0ea1)                                   | `Tx...`                                                               |
+| Testnet integrated prefix                       | `25247` (0x629f)                                  | `Ti...`                                                               |
+| Testnet subaddress prefix                       | `22944` (0x59a0)                                  | `Ts...`                                                               |
+| Stagenet standard prefix                        | `4507` (0x119b)                                   | `Sx...`                                                               |
+| Stagenet integrated prefix                      | `26009` (0x6599)                                  | `Si...`                                                               |
+| Stagenet subaddress prefix                      | `23578` (0x5c1a)                                  | `Ss...`                                                               |
 | Mainnet P2P port                                | `22759`                                           |                                                                       |
 | Mainnet RPC port                                | `22760`                                           |                                                                       |
 | Mainnet ZMQ port                                | `22761`                                           |                                                                       |
