@@ -58,12 +58,19 @@ exit             # quit
 Run one local node in stagenet mode. No peers needed; it mines to itself.
 
 ```bash
-# Terminal 1 — start the daemon (replace <your-address> with the address from above)
-./build/release/bin/rackzd --stagenet --log-level 1 --start-mining <your-address> --mining-threads 1 --non-interactive
+# Terminal 1 — start the daemon (do NOT use --start-mining here; it needs a peer)
+./build/release/bin/rackzd --stagenet --log-level 1 --non-interactive
 
-# Terminal 2 — open the wallet
+# Terminal 2 — start mining via RPC (replace with your address)
+curl -s http://127.0.0.1:42760/json_rpc \
+  -d '{"jsonrpc":"2.0","id":"0","method":"start_mining","params":{"miner_address":"<your-address>","threads_count":1,"do_background_mining":false,"ignore_battery":true}}' \
+  -H 'Content-Type: application/json'
+
+# Terminal 3 — open the wallet to watch balances
 ./build/release/bin/rackz-wallet-cli --stagenet --wallet-file ~/rackz-stagenet.wallet
 ```
+
+> **Why RPC?** The daemon's `--start-mining` flag only activates after the node considers itself synchronized with a peer. On a single-node network there are no peers, so mining never starts. The RPC `start_mining` command bypasses this check and starts mining immediately.
 
 Stagenet ports: P2P `42759`, RPC `42760`.
 
