@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # .githooks/pre-push
-# Thin wrapper — all logic lives in scripts/ci/pre-push/
-# Pre-push checks are slower (full build, tests, coverage).
+# Fast local checks that run before every push.
+# These are lightweight (< 2 min) — no C++ builds, no tests, no coverage.
+#
+# Full verification (build, test, coverage, sanitisers) runs in CI
+# via scripts/ci/nightly/*.sh and GitHub Actions.
+#
 # Skip with: SKIP_PREPUSH=1 git push
 
 set -euo pipefail
@@ -16,3 +20,6 @@ for script in "$ROOT"/scripts/ci/pre-push/*.sh; do
   [ -f "$script" ] || continue
   bash "$script"
 done
+
+echo "Pre-push checks passed."
+echo "Full build + test verification runs in CI (scripts/ci/nightly/)."
