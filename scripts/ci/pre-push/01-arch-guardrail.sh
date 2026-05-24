@@ -33,8 +33,10 @@ check_layer() {
     return
   fi
 
+  # Require forbidden dir to appear right after the include delimiter.
+  # This avoids flagging internal subdirs like src/crypto/wallet/.
   violations=$(grep -rn --include="*.cpp" --include="*.h" --include="*.hpp" \
-    -E "#include.*(${forbidden_pattern})" "src/$layer/" 2>/dev/null || true)
+    -E "#include\s*[\"<](${forbidden_pattern})" "src/$layer/" 2>/dev/null || true)
 
   if [ -n "$violations" ]; then
     echo "error: Architecture violation in src/$layer/"
@@ -58,7 +60,7 @@ check_layer "seraphis_crypto" \
   "src/seraphis_crypto/ (stub) must not depend on any application layer"
 
 check_layer "cryptonote_core" \
-  "\"wallet/" \
+  "wallet/" \
   "src/cryptonote_core/ must not depend on src/wallet/"
 
 check_layer "net" \
@@ -66,7 +68,7 @@ check_layer "net" \
   "src/net/ must not depend on consensus or wallet layers"
 
 check_layer "p2p" \
-  "\"wallet/" \
+  "wallet/" \
   "src/p2p/ must not depend on src/wallet/"
 
 if [ "$ERRORS" -gt 0 ]; then
