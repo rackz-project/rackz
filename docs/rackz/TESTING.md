@@ -58,8 +58,11 @@ exit             # quit
 Run one local node in stagenet mode. No peers needed; it mines to itself.
 
 ```bash
-# Terminal 1 — start the daemon (add --offline to suppress peer-seeking logs)
-./build/release/bin/rackzd --stagenet --log-level 1 --non-interactive --offline
+# Terminal 1 — start the daemon
+#   --offline             = no P2P (silences peer-seeking logs)
+#   --fixed-difficulty 1  = keep difficulty at 1 (otherwise it shoots to 7260+
+#                           after the first few fast blocks and 1 thread cant keep up)
+./build/release/bin/rackzd --stagenet --log-level 1 --non-interactive --offline --fixed-difficulty 1
 
 # Terminal 2 — start mining via HTTP RPC endpoint (replace <your-address>)
 curl -s http://127.0.0.1:42760/start_mining \
@@ -77,6 +80,17 @@ curl -s http://127.0.0.1:42760/start_mining \
 Stagenet ports: P2P `42759`, RPC `42760`.
 
 Data directory: `~/.rackz/stagenet/`
+
+### Gotchas
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `"Method not found"` from `/json_rpc` | `start_mining` is a plain HTTP endpoint, not JSON-RPC. | Use `curl … /start_mining` with a plain JSON body (no `jsonrpc`/`method` wrapper). |
+| Miner finds blocks then stops | Difficulty retargeted to 7260+ after the first few fast blocks. 1 RandomX thread cannot keep up. | Restart daemon with `--fixed-difficulty 1`. |
+| Endless `Failed to connect to any, trying seeds` | Daemon is looking for peers that don't exist. | Restart daemon with `--offline` (disables P2P entirely; RPC still works). |
+| Wallet refresh error: *reorg exceeds maximum allowed depth* | Wallet was created/opened against an older/higher daemon, so its cached `refresh-from-block-height` is above the current chain tip. | In the wallet CLI: `set refresh-from-block-height 0` then `refresh`. |
+| `Balance: 0` even though blocks were found | Mining rewards were sent to a different address than the wallet's. Check with `address` in the wallet. | Stop mining (`/stop_mining`), then restart with the wallet's actual address. |
+| `unlocked balance: 0` | Coinbase rewards are locked for ~60 blocks (consensus maturity rule). | Wait; run `balance` periodically. The wallet shows `N block(s) to unlock`. |
 
 ---
 
