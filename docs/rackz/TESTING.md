@@ -3,15 +3,53 @@
 ## Prerequisites
 
 ```bash
-# Build the daemon and wallet binaries
+# Configure (only needed once)
 mkdir -p build/release
 cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+
+# Build daemon and wallet
 make -C build/release -j$(nproc) daemon simplewallet
 ```
 
 Binaries land in `build/release/bin/`:
+
 - `rackzd` — daemon
 - `rackz-wallet-cli` — CLI wallet
+
+---
+
+## Create a wallet
+
+Always create the wallet **before** starting the daemon, so you have an address to mine to.
+
+```bash
+# Stagenet wallet
+./build/release/bin/rackz-wallet-cli --stagenet --generate-new-wallet ~/rackz-stagenet.wallet
+```
+
+The CLI will prompt for:
+
+1. A wallet password (can be empty for testing)
+2. A language for the seed phrase (choose English)
+
+It prints your address on creation — it starts with `S` for stagenet (`T` for testnet, `R` for mainnet).
+Copy that address; you'll pass it to `--start-mining` below.
+
+To open an existing wallet later:
+
+```bash
+./build/release/bin/rackz-wallet-cli --stagenet --wallet-file ~/rackz-stagenet.wallet
+```
+
+Useful wallet commands once inside the CLI:
+
+```
+balance          # show balance
+address          # show your address again
+refresh          # sync with daemon
+help             # full command list
+exit             # quit
+```
 
 ---
 
@@ -20,11 +58,11 @@ Binaries land in `build/release/bin/`:
 Run one local node in stagenet mode. No peers needed; it mines to itself.
 
 ```bash
-# Terminal 1 — start the daemon
+# Terminal 1 — start the daemon (replace <your-address> with the address from above)
 ./build/release/bin/rackzd --stagenet --log-level 1 --start-mining <your-address> --mining-threads 1 --non-interactive
 
 # Terminal 2 — open the wallet
-./build/release/bin/rackz-wallet-cli --stagenet --generate-new-wallet ~/rackz-stagenet.wallet
+./build/release/bin/rackz-wallet-cli --stagenet --wallet-file ~/rackz-stagenet.wallet
 ```
 
 Stagenet ports: P2P `42759`, RPC `42760`.
@@ -67,7 +105,7 @@ The `--add-exclusive-node` flag connects your node directly to the Pi, bypassing
 
 Replace `--stagenet` with `--testnet` everywhere.
 
-Testnet ports: P2P `32759`, RPC `32760`.  
+Testnet ports: P2P `32759`, RPC `32760`.
 Data directory: `~/.rackz/testnet/`
 
 ---
@@ -99,12 +137,12 @@ curl -s http://127.0.0.1:42760/json_rpc -d '{
 
 ## Key network parameters
 
-| | Mainnet | Testnet | Stagenet |
-|---|---|---|---|
-| P2P port | 22759 | 32759 | 42759 |
-| RPC port | 22760 | 32760 | 42760 |
-| Address prefix | `Rx` | `Tx` | `Sx` |
-| Data dir | `~/.rackz/` | `~/.rackz/testnet/` | `~/.rackz/stagenet/` |
+|                | Mainnet     | Testnet             | Stagenet             |
+| -------------- | ----------- | ------------------- | -------------------- |
+| P2P port       | 22759       | 32759               | 42759                |
+| RPC port       | 22760       | 32760               | 42760                |
+| Address prefix | `Rx`        | `Tx`                | `Sx`                 |
+| Data dir       | `~/.rackz/` | `~/.rackz/testnet/` | `~/.rackz/stagenet/` |
 
 ---
 
