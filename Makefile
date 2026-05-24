@@ -112,4 +112,10 @@ clean-all:
 	[ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ] || (echo "Exiting."; exit 1;)
 	rm -rf ./build
 
-.PHONY: all cmake-debug debug debug-test debug-all cmake-release release release-test release-all clean
+upstream-check:
+	@git fetch upstream && git log --oneline --left-right --decorate master...upstream/master
+
+upstream-merge:
+	@git fetch upstream && git merge upstream/master --no-edit
+
+.PHONY: all cmake-debug debug debug-test debug-all cmake-release release release-test release-all clean clean-all upstream-check upstream-merge
