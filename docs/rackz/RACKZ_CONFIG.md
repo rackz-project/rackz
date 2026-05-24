@@ -86,10 +86,10 @@ namespace config
   uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX  = 19;
   uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX          = 42;
 
-  // CONFIRMED Rackz mainnet — prefix 0x1415 = 5141; addresses start with "Rx"
-  uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX             = 5141;  // "Rx..." CONFIRMED
-  uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX  = 5142;  // verify with prefix tool
-  uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX          = 5143;  // verify with prefix tool
+  // CONFIRMED Rackz mainnet address prefixes:
+  uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX             = 5141;   // 0x1415 — "Rx..."
+  uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX  = 26643;  // 0x6813 — "Ri..."
+  uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX          = 24340;  // 0x5f14 — "Rs..."
 
   // Testnet and stagenet prefixes must not collide with mainnet.
   // Recommend selecting values that produce a visually distinct first character
@@ -153,14 +153,13 @@ namespace config
   uint16_t const RPC_DEFAULT_PORT     = 18081;
   uint16_t const ZMQ_RPC_DEFAULT_PORT = 18082;
 
-  // CONFIRMED Rackz — "RACK" on phone keypad = 7225
-  // ("RACKZ" = 72259 exceeds max port 65535; RACK = 7225 is used as the base)
-  uint16_t const P2P_DEFAULT_PORT     = 7225;
-  uint16_t const RPC_DEFAULT_PORT     = 7226;
-  uint16_t const ZMQ_RPC_DEFAULT_PORT = 7227;
+  // CONFIRMED Rackz ports (base 22759)
+  uint16_t const P2P_DEFAULT_PORT     = 22759;
+  uint16_t const RPC_DEFAULT_PORT     = 22760;
+  uint16_t const ZMQ_RPC_DEFAULT_PORT = 22761;
 
-  namespace testnet  { uint16_t const P2P_DEFAULT_PORT = 17225; uint16_t const RPC_DEFAULT_PORT = 17226; uint16_t const ZMQ_RPC_DEFAULT_PORT = 17227; }
-  namespace stagenet { uint16_t const P2P_DEFAULT_PORT = 27225; uint16_t const RPC_DEFAULT_PORT = 27226; uint16_t const ZMQ_RPC_DEFAULT_PORT = 27227; }
+  namespace testnet  { uint16_t const P2P_DEFAULT_PORT = 32759; uint16_t const RPC_DEFAULT_PORT = 32760; uint16_t const ZMQ_RPC_DEFAULT_PORT = 32761; }
+  namespace stagenet { uint16_t const P2P_DEFAULT_PORT = 42759; uint16_t const RPC_DEFAULT_PORT = 42760; uint16_t const ZMQ_RPC_DEFAULT_PORT = 42761; }
 }
 ```
 
@@ -910,11 +909,17 @@ and `hardforks/hardforks.cpp` stays at upstream values.
 
 ### Address prefix for brand recognition
 
-**CONFIRMED**: Mainnet prefix `5141` (0x1415) — addresses start with **"Rx"**.
-Integrated (5142) and subaddress (5143) prefixes are provisional — verify they
-produce non-colliding leading characters with the
-[CryptoNote prefix tool](https://cryptonotestarter.org/tools.html) before committing.
-Testnet (5153) and stagenet (5163) are placeholders requiring the same verification.
+**CONFIRMED** mainnet prefixes:
+
+| Type       | Prefix (decimal) | Prefix (hex) | Leading chars |
+| ---------- | ---------------- | ------------ | ------------- |
+| Standard   | `5141`           | `0x1415`     | `Rx...`       |
+| Integrated | `26643`          | `0x6813`     | `Ri...`       |
+| Subaddress | `24340`          | `0x5f14`     | `Rs...`       |
+
+Testnet (5153) and stagenet (5163) standard prefixes are still provisional —
+verify leading characters with the
+[CryptoNote prefix tool](https://cryptonotestarter.org/tools.html).
 
 ### Disable DNS checkpoint and update systems on first launch
 
@@ -994,13 +999,13 @@ All decisions below are confirmed. Do not change without a documented rationale.
 | ----------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------- |
 | `CRYPTONOTE_NAME`                               | `"rackz"`                                         | Drives data dir, config, log file names                               |
 | Mainnet address prefix                          | `5141` (0x1415)                                   | Addresses start with "Rx"                                             |
-| Integrated address prefix                       | `5142`                                            | Verify with prefix tool before commit                                 |
-| Subaddress prefix                               | `5143`                                            | Verify with prefix tool before commit                                 |
-| Mainnet P2P port                                | `7225`                                            | "RACK" on phone keypad                                                |
-| Mainnet RPC port                                | `7226`                                            |                                                                       |
-| Mainnet ZMQ port                                | `7227`                                            |                                                                       |
-| Testnet ports                                   | `17225–17227`                                     |                                                                       |
-| Stagenet ports                                  | `27225–27227`                                     |                                                                       |
+| Integrated address prefix                       | `26643` (0x6813)                                  | Addresses start with "Ri"                                             |
+| Subaddress prefix                               | `24340` (0x5f14)                                  | Addresses start with "Rs"                                             |
+| Mainnet P2P port                                | `22759`                                           |                                                                       |
+| Mainnet RPC port                                | `22760`                                           |                                                                       |
+| Mainnet ZMQ port                                | `22761`                                           |                                                                       |
+| Testnet ports                                   | `32759–32761`                                     |                                                                       |
+| Stagenet ports                                  | `42759–42761`                                     |                                                                       |
 | Mainnet NETWORK_ID                              | `4C 68 28 1A 6B 8C F3 24 90 41 53 63 DF D1 D5 39` | Cryptographically random                                              |
 | Testnet NETWORK_ID                              | `0E 41 E8 13 A4 BE AC 8F 96 24 AF 1B B4 BF CC F2` | Cryptographically random                                              |
 | Stagenet NETWORK_ID                             | `D2 0F E9 E6 4F 70 F8 CD D3 0F 0B 56 55 6B 28 82` | Cryptographically random                                              |
