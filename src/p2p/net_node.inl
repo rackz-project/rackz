@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2024, The Monero Project
+// Copyright (c) 2026-present, The Rackz Project
+// Portions Copyright (c) 2014-2024, The Monero Project
 //
 // All rights reserved.
 //
@@ -2211,10 +2212,9 @@ namespace nodetool
     if (m_nettype != cryptonote::MAINNET)
       return true;
 
-    static const std::vector<std::string> dns_urls = {"blocklist.moneropulse.se",  "blocklist.moneropulse.org",
-                                                      "blocklist.moneropulse.net", "blocklist.moneropulse.co",
-                                                      "blocklist.moneropulse.fr",  "blocklist.moneropulse.de",
-                                                      "blocklist.moneropulse.ch"};
+    static const std::vector<std::string> dns_urls = {};
+    // TODO: populate with Rackz blocklist domain once infrastructure exists:
+    // e.g. {"blocklist.rackz.io"}
 
     std::vector<std::string> records;
     if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls))

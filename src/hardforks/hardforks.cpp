@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2024, The Monero Project
+// Copyright (c) 2026-present, The Rackz Project
+// Portions Copyright (c) 2014-2024, The Monero Project
 //
 // All rights reserved.
 //

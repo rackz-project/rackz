@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026-present, The Rackz Project
 # pre-commit/00-file-quality.sh
 # Checks trailing whitespace, merge conflict markers, large files, and missing EOF newline.
 

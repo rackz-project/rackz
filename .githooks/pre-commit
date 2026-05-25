@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026-present, The Rackz Project
 # .githooks/pre-commit
 # Thin wrapper — all logic lives in scripts/ci/pre-commit/
 

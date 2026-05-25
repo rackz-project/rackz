@@ -370,16 +370,16 @@ const std::string address = "rackz:" + m_wallet->get_subaddress_as_str(...);
 
 > **Yellow-zone / not red-zone.**
 
-| File                                  | Change                                                                                                                    |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `src/daemon/executor.cpp`             | `t_executor::NAME = "Monero Daemon"` → `"Rackz Daemon"`                                                                   |
-| `src/daemon/command_line_args.h`      | `WINDOWS_SERVICE_NAME = "Monero Daemon"` → `"Rackz Daemon"`                                                               |
-| `src/daemon/rpc_command_executor.cpp` | `"monero daily"` / `"monero monthly"` mining output strings                                                               |
-| `src/daemonizer/posix_fork.cpp`       | `"/bitmonero.daemon.stdout.stderr"` → `"/rackz.daemon.stdout.stderr"`                                                     |
-| `src/simplewallet/simplewallet.cpp`   | Welcome/help strings: all `"Monero"` / `"monero"` occurrences; unit names `monero/millinero/...`; QR URI scheme `monero:` |
-| `src/wallet/wallet_args.cpp`          | `"This is the command line monero wallet..."` help text; `getenv("MONERO_LOGS")`                                          |
-| `src/wallet/wallet_rpc_server.cpp`    | Usage string: `"monero-wallet-rpc [--wallet-file=...]"` → `"rackz-wallet-rpc [...]"`                                      |
-| `src/gen_multisig/gen_multisig.cpp`   | Usage string: `"monero-gen-multisig [...]"` → `"rackz-gen-multisig [...]"`                                                |
+| File                                  | Status | Change                                                                                                                    |
+| ------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `src/daemon/executor.cpp`             | ✅ done | `t_executor::NAME = "Monero Daemon"` → `"Rackz Daemon"`                                                                   |
+| `src/daemon/command_line_args.h`      | ✅ done | `WINDOWS_SERVICE_NAME = "Monero Daemon"` → `"Rackz Daemon"`                                                               |
+| `src/daemon/rpc_command_executor.cpp` | ✅ done | `"monero daily"` / `"monero monthly"` mining output strings                                                               |
+| `src/daemonizer/posix_fork.cpp`       | ✅ done | `"/bitmonero.daemon.stdout.stderr"` → `"/rackz.daemon.stdout.stderr"`                                                     |
+| `src/simplewallet/simplewallet.cpp`   | ✅ done | Welcome/help strings; unit names `rackz/millirackz/...`; QR URI scheme `rackz:`; donate strings → `rackz.io` |
+| `src/wallet/wallet_args.cpp`          | ✅ done | Help text updated; `getenv("RACKZ_LOGS")`; `i18n_set_language("rackz", ...)`                                              |
+| `src/wallet/wallet_rpc_server.cpp`    | ✅ done | Binary name, default RPC username, help text, log file, login file, background-mining strings → rackz |
+| `src/gen_multisig/gen_multisig.cpp`   | ✅ done | Usage string and log filename → `rackz-gen-multisig` |
 
 Startup banners (`"Monero 'Fluorine Fermi' (v0.18.1.0)"`) will update automatically
 once `DEF_MONERO_RELEASE_NAME` and `DEF_MONERO_VERSION` are changed.
@@ -397,8 +397,9 @@ once `DEF_MONERO_RELEASE_NAME` and `DEF_MONERO_VERSION` are changed.
 |---|---|
 | `src/p2p/net_node.h` | DNS seed hostnames cleared (empty list) |
 | `src/p2p/net_node.inl` `get_ip_seed_nodes()` | Hardcoded IP seeds cleared |
+| `src/p2p/net_node.inl` `update_dns_blocklist()` | `blocklist.moneropulse.*` URLs cleared (empty list); TODO comment for future Rackz domain |
 | `src/checkpoints/checkpoints.cpp` | All MoneroPulse checkpoint DNS URLs cleared |
-| `src/common/updates.cpp` | MoneroPulse update DNS URLs cleared (empty list) |
+| `src/common/updates.cpp` | MoneroPulse update DNS URLs cleared; download/update base URLs set to `rackz.io`; `--check-updates` default `disabled` |
 | `src/cryptonote_core/cryptonote_core.cpp` | `--check-updates` default set to `disabled`; software name changed to `rackz` |
 | `src/common/dns_utils.cpp` | DNSSEC probe changed from `updates.moneropulse.org` to neutral `dns.quad9.net` |
 
@@ -440,27 +441,18 @@ static const std::vector<std::string> dns_urls = {
 
 TXT record format: `rackz:<buildtag>:<version>:<sha256hash>`
 
-Also update the download base URLs in `get_update_url()` (same file):
-```cpp
-const char *base = user ? "https://downloads.rackz.io/"
-                        : "https://updates.rackz.io/";
-```
+Download base URLs in `get_update_url()` are already set to `rackz.io`.
 
-And re-enable the check by changing the default in `src/cryptonote_core/cryptonote_core.cpp`:
+To re-enable the check, change the default in `src/cryptonote_core/cryptonote_core.cpp`:
 ```cpp
 // arg_check_updates default: change "disabled" back to "notify"
 ```
 
-#### 4. DNS blocklist — `src/p2p/net_node.inl` `update_dns_blocklist()`
+#### 4. DNS blocklist — `src/p2p/net_node.inl` `update_dns_blocklist()` ✅ cleared
 
-Only runs on mainnet when `--enable-dns-blocklist` is passed. Currently still points to `blocklist.moneropulse.*`.
+The `blocklist.moneropulse.*` URLs have been removed (empty list). Populate when Rackz infrastructure exists:
 
 ```cpp
-// Replace:
-static const std::vector<std::string> dns_urls = {
-    "blocklist.moneropulse.se", "blocklist.moneropulse.org", ...
-};
-// With:
 static const std::vector<std::string> dns_urls = {
     "blocklist.rackz.io"
 };
