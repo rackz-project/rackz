@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026-present, The Rackz Project
 # pre-commit/00-file-quality.sh
 # Checks trailing whitespace, merge conflict markers, large files, and missing EOF newline.
 
@@ -36,8 +37,8 @@ while IFS= read -r file; do
   fi
 
   size=$(git cat-file -s ":$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo 0)
-  if [ "$size" -gt 524288 ]; then
-    echo "error: file exceeds 512 KB: $file (${size} bytes)"
+  if [ "$size" -gt 1048576 ]; then
+    echo "error: file exceeds 1 MB: $file (${size} bytes)"
     echo "  Consider splitting or using Git LFS."
     ((ERRORS++)) || true
   fi

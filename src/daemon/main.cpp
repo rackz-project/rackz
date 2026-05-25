@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2024, The Monero Project
+// Copyright (c) 2026-present, The Rackz Project
+// Portions Copyright (c) 2014-2024, The Monero Project
 //
 // All rights reserved.
 //
@@ -56,9 +57,9 @@
 namespace po = boost::program_options;
 namespace bf = boost::filesystem;
 
-uint16_t parse_public_rpc_port(const po::variables_map &vm)
+uint16_t parse_public_rpc_port(const po::variables_map& vm)
 {
-  const auto &public_node_arg = daemon_args::arg_public_node;
+  const auto& public_node_arg = daemon_args::arg_public_node;
   const bool public_node = command_line::get_arg(vm, public_node_arg);
   if (!public_node)
   {
@@ -67,7 +68,7 @@ uint16_t parse_public_rpc_port(const po::variables_map &vm)
 
   std::string rpc_port_str;
   std::string rpc_bind_address = command_line::get_arg(vm, cryptonote::rpc_args::descriptors().rpc_bind_ip);
-  const auto &restricted_rpc_port = cryptonote::core_rpc_server::arg_rpc_restricted_bind_port;
+  const auto& restricted_rpc_port = cryptonote::core_rpc_server::arg_rpc_restricted_bind_port;
   if (!command_line::is_arg_defaulted(vm, restricted_rpc_port))
   {
     rpc_port_str = command_line::get_arg(vm, restricted_rpc_port);
@@ -89,20 +90,20 @@ uint16_t parse_public_rpc_port(const po::variables_map &vm)
   }
 
   const auto address = net::get_network_address(rpc_bind_address, rpc_port);
-  if (!address) {
+  if (!address)
+  {
     throw std::runtime_error("failed to parse RPC bind address");
   }
   if (address->get_zone() != epee::net_utils::zone::public_)
   {
-    throw std::runtime_error(std::string(zone_to_string(address->get_zone()))
-      + " network zone is not supported, please check RPC server bind address");
+    throw std::runtime_error(std::string(zone_to_string(address->get_zone())) +
+                             " network zone is not supported, please check RPC server bind address");
   }
 
   if (address->is_loopback() || address->is_local())
   {
-    MLOG_RED(el::Level::Warning, "--" << public_node_arg.name 
-      << " is enabled, but RPC server " << address->str() 
-      << " may be unreachable from outside, please check RPC server bind address");
+    MLOG_RED(el::Level::Warning, "--" << public_node_arg.name << " is enabled, but RPC server " << address->str()
+                                      << " may be unreachable from outside, please check RPC server bind address");
   }
 
   return rpc_port;
@@ -122,9 +123,10 @@ bool isFat32(const wchar_t* root_path)
 }
 #endif
 
-int main(int argc, char const * argv[])
+int main(int argc, char const* argv[])
 {
-  try {
+  try
+  {
 
     // TODO parse the debug options like set log level right here at start
 
@@ -178,22 +180,26 @@ int main(int argc, char const * argv[])
 
     // Do command line parsing
     po::variables_map vm;
-    bool ok = command_line::handle_error_helper(visible_options, [&]()
-    {
-      boost::program_options::store(
-        boost::program_options::command_line_parser(argc, argv)
-          .options(all_options).positional(positional_options).run()
-      , vm
-      );
+    bool ok = command_line::handle_error_helper(visible_options,
+                                                [&]()
+                                                {
+                                                  boost::program_options::store(
+                                                    boost::program_options::command_line_parser(argc, argv)
+                                                      .options(all_options)
+                                                      .positional(positional_options)
+                                                      .run(),
+                                                    vm);
 
-      return true;
-    });
-    if (!ok) return 1;
+                                                  return true;
+                                                });
+    if (!ok)
+      return 1;
 
     if (command_line::get_arg(vm, command_line::arg_help))
     {
-      std::cout << "Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << ENDL << ENDL;
-      std::cout << "Usage: " + std::string{argv[0]} + " [options|settings] [daemon_command...]" << std::endl << std::endl;
+      std::cout << "Rackz '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << ENDL << ENDL;
+      std::cout << "Usage: " + std::string{argv[0]} + " [options|settings] [daemon_command...]" << std::endl
+                << std::endl;
       std::cout << visible_options << std::endl;
       return 0;
     }
@@ -201,7 +207,7 @@ int main(int argc, char const * argv[])
     // Monero Version
     if (command_line::get_arg(vm, command_line::arg_version))
     {
-      std::cout << "Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << ENDL;
+      std::cout << "Rackz '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << ENDL;
       return 0;
     }
 
@@ -214,12 +220,13 @@ int main(int argc, char const * argv[])
       {
         po::store(po::parse_config_file<char>(config_path.string<std::string>().c_str(), core_settings), vm);
       }
-      catch (const po::unknown_option &e)
+      catch (const po::unknown_option& e)
       {
         std::string unrecognized_option = e.get_option_name();
         if (all_options.find_nothrow(unrecognized_option, false))
         {
-          std::cerr << "Option '" << unrecognized_option << "' is not allowed in the config file, please use it as a command line flag." << std::endl;
+          std::cerr << "Option '" << unrecognized_option
+                    << "' is not allowed in the config file, please use it as a command line flag." << std::endl;
         }
         else
         {
@@ -227,7 +234,7 @@ int main(int argc, char const * argv[])
         }
         return 1;
       }
-      catch (const std::exception &e)
+      catch (const std::exception& e)
       {
         // log system isn't initialized yet
         std::cerr << "Error parsing config file: " << e.what() << std::endl;
@@ -240,7 +247,10 @@ int main(int argc, char const * argv[])
       return 1;
     }
 
-    try { cryptonote::core::get_network_type_from_args(vm); }
+    try
+    {
+      cryptonote::core::get_network_type_from_args(vm);
+    }
     catch (const std::runtime_error&)
     {
       std::cerr << "Can't specify more than one of --testnet and --stagenet and --regtest" << ENDL;
@@ -254,8 +264,7 @@ int main(int argc, char const * argv[])
     //     relative path: relative to cwd
 
     // Create data dir if it doesn't exist
-    boost::filesystem::path data_dir = boost::filesystem::absolute(
-        command_line::get_arg(vm, cryptonote::arg_data_dir));
+    boost::filesystem::path data_dir = boost::filesystem::absolute(command_line::get_arg(vm, cryptonote::arg_data_dir));
 
 #ifdef WIN32
     if (isFat32(data_dir.root_path().c_str()))
@@ -265,7 +274,7 @@ int main(int argc, char const * argv[])
 #endif
 
     // FIXME: not sure on windows implementation default, needs further review
-    //bf::path relative_path_base = daemonizer::get_relative_path_base(vm);
+    // bf::path relative_path_base = daemonizer::get_relative_path_base(vm);
     bf::path relative_path_base = data_dir;
 
     po::notify(vm);
@@ -275,12 +284,13 @@ int main(int argc, char const * argv[])
     //   if log-file argument given:
     //     absolute path
     //     relative path: relative to data_dir
-    bf::path log_file_path {data_dir / std::string(CRYPTONOTE_NAME ".log")};
+    bf::path log_file_path{data_dir / std::string(CRYPTONOTE_NAME ".log")};
     if (!command_line::is_arg_defaulted(vm, daemon_args::arg_log_file))
       log_file_path = command_line::get_arg(vm, daemon_args::arg_log_file);
     if (!log_file_path.has_parent_path())
       log_file_path = bf::absolute(log_file_path, relative_path_base);
-    mlog_configure(log_file_path.string(), true, command_line::get_arg(vm, daemon_args::arg_max_log_file_size), command_line::get_arg(vm, daemon_args::arg_max_log_files));
+    mlog_configure(log_file_path.string(), true, command_line::get_arg(vm, daemon_args::arg_max_log_file_size),
+                   command_line::get_arg(vm, daemon_args::arg_max_log_files));
 
     // Set log level
     if (!command_line::is_arg_defaulted(vm, daemon_args::arg_log_level))
@@ -295,7 +305,7 @@ int main(int argc, char const * argv[])
       tools::set_max_concurrency(command_line::get_arg(vm, daemon_args::arg_max_concurrency));
 
     // logging is now set up
-    MGINFO("Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")");
+    MGINFO("Rackz '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")");
 
     // If there are positional options, we're running a daemon command
     {
@@ -320,18 +330,21 @@ int main(int argc, char const * argv[])
           return 1;
         }
 
-        const char *env_rpc_login = nullptr;
+        const char* env_rpc_login = nullptr;
         const bool has_rpc_arg = command_line::has_arg(vm, arg.rpc_login);
-        const bool use_rpc_env = !has_rpc_arg && (env_rpc_login = getenv("RPC_LOGIN")) != nullptr && strlen(env_rpc_login) > 0;
+        const bool use_rpc_env =
+          !has_rpc_arg && (env_rpc_login = getenv("RPC_LOGIN")) != nullptr && strlen(env_rpc_login) > 0;
         boost::optional<tools::login> login{};
         if (has_rpc_arg || use_rpc_env)
         {
-          login = tools::login::parse(
-            has_rpc_arg ? command_line::get_arg(vm, arg.rpc_login) : std::string(env_rpc_login), false, [](bool verify) {
-              PAUSE_READLINE();
-              return tools::password_container::prompt(verify, "Daemon client password");
-            }
-          );
+          login =
+            tools::login::parse(has_rpc_arg ? command_line::get_arg(vm, arg.rpc_login) : std::string(env_rpc_login),
+                                false,
+                                [](bool verify)
+                                {
+                                  PAUSE_READLINE();
+                                  return tools::password_container::prompt(verify, "Daemon client password");
+                                });
           if (!login)
           {
             std::cerr << "Failed to obtain password" << std::endl;
@@ -361,7 +374,7 @@ int main(int argc, char const * argv[])
 
     return daemonizer::daemonize(argc, argv, daemonize::t_executor{parse_public_rpc_port(vm)}, vm) ? 0 : 1;
   }
-  catch (std::exception const & ex)
+  catch (std::exception const& ex)
   {
     LOG_ERROR("Exception in main! " << ex.what());
   }

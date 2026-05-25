@@ -1,21 +1,22 @@
-// Copyright (c) 2017-2024, The Monero Project
-// 
+// Copyright (c) 2026-present, The Rackz Project
+// Portions Copyright (c) 2017-2024, The Monero Project
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,12 +26,12 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 /*!
  * \file gen_multisig.cpp
- * 
+ *
  * \brief Generates a set of multisig wallets
  */
 #include <iostream>
@@ -39,7 +40,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "include_base_utils.h"
-#include "crypto/crypto.h"  // for crypto::secret_key definition
+#include "crypto/crypto.h" // for crypto::secret_key definition
 #include "common/i18n.h"
 #include "common/command_line.h"
 #include "common/util.h"
@@ -62,22 +63,31 @@ namespace genms
     return i18n_translate(str, "tools::gen_multisig");
   }
 
-}
+} // namespace genms
 
 namespace
 {
-  const command_line::arg_descriptor<std::string> arg_filename_base = {"filename-base", genms::tr("Base filename (-1, -2, etc suffixes will be appended as needed)"), ""};
-  const command_line::arg_descriptor<std::string> arg_scheme = {"scheme", genms::tr("Give threshold and participants at once as M/N"), ""};
-  const command_line::arg_descriptor<uint32_t> arg_participants = {"participants", genms::tr("How many participants will share parts of the multisig wallet"), 0};
-  const command_line::arg_descriptor<uint32_t> arg_threshold = {"threshold", genms::tr("How many signers are required to sign a valid transaction"), 0};
-  const command_line::arg_descriptor<bool, false> arg_testnet = {"testnet", genms::tr("Create testnet multisig wallets"), false};
-  const command_line::arg_descriptor<bool, false> arg_stagenet = {"stagenet", genms::tr("Create stagenet multisig wallets"), false};
-  const command_line::arg_descriptor<bool, false> arg_create_address_file = {"create-address-file", genms::tr("Create an address file for new wallets"), false};
-}
+  const command_line::arg_descriptor<std::string> arg_filename_base = {
+    "filename-base", genms::tr("Base filename (-1, -2, etc suffixes will be appended as needed)"), ""};
+  const command_line::arg_descriptor<std::string> arg_scheme = {
+    "scheme", genms::tr("Give threshold and participants at once as M/N"), ""};
+  const command_line::arg_descriptor<uint32_t> arg_participants = {
+    "participants", genms::tr("How many participants will share parts of the multisig wallet"), 0};
+  const command_line::arg_descriptor<uint32_t> arg_threshold = {
+    "threshold", genms::tr("How many signers are required to sign a valid transaction"), 0};
+  const command_line::arg_descriptor<bool, false> arg_testnet = {"testnet",
+                                                                 genms::tr("Create testnet multisig wallets"), false};
+  const command_line::arg_descriptor<bool, false> arg_stagenet = {"stagenet",
+                                                                  genms::tr("Create stagenet multisig wallets"), false};
+  const command_line::arg_descriptor<bool, false> arg_create_address_file = {
+    "create-address-file", genms::tr("Create an address file for new wallets"), false};
+} // namespace
 
-static bool generate_multisig(uint32_t threshold, uint32_t total, const std::string &basename, network_type nettype, bool create_address_file)
+static bool generate_multisig(uint32_t threshold, uint32_t total, const std::string& basename, network_type nettype,
+                              bool create_address_file)
 {
-  tools::msg_writer() << (boost::format(genms::tr("Generating %u %u/%u multisig wallets")) % total % threshold % total).str();
+  tools::msg_writer()
+    << (boost::format(genms::tr("Generating %u %u/%u multisig wallets")) % total % threshold % total).str();
 
   const auto pwd_container = tools::password_container::prompt(true, "Enter password for new multisig wallets");
 
@@ -93,7 +103,8 @@ static bool generate_multisig(uint32_t threshold, uint32_t total, const std::str
       std::string name = basename + "-" + std::to_string(n + 1);
       wallets[n].reset(new tools::wallet2(nettype, 1, false));
       wallets[n]->init("");
-      wallets[n]->generate(name, pwd_container->password(), rct::rct2sk(rct::skGen()), false, false, create_address_file);
+      wallets[n]->generate(name, pwd_container->password(), rct::rct2sk(rct::skGen()), false, false,
+                           create_address_file);
     }
 
     // gather the keys
@@ -128,7 +139,7 @@ static bool generate_multisig(uint32_t threshold, uint32_t total, const std::str
 
       for (size_t n = 0; n < total; ++n)
       {
-          kex_msgs_for_round[n] = wallets[n]->exchange_multisig_keys(pwd_container->password(), kex_msgs_intermediate);
+        kex_msgs_for_round[n] = wallets[n]->exchange_multisig_keys(pwd_container->password(), kex_msgs_intermediate);
       }
 
       // Update messages for next round
@@ -138,9 +149,10 @@ static bool generate_multisig(uint32_t threshold, uint32_t total, const std::str
     }
 
     std::string address = wallets[0]->get_account().get_public_address_str(wallets[0]->nettype());
-    tools::success_msg_writer() << genms::tr("Generated multisig wallets for address ") << address << std::endl << ss.str();
+    tools::success_msg_writer() << genms::tr("Generated multisig wallets for address ") << address << std::endl
+                                << ss.str();
   }
-  catch (const std::exception &e)
+  catch (const std::exception& e)
   {
     tools::fail_msg_writer() << genms::tr("Error creating multisig wallets: ") << e.what();
     return false;
@@ -165,14 +177,14 @@ int main(int argc, char* argv[])
   boost::optional<po::variables_map> vm;
   bool should_terminate = false;
   std::tie(vm, should_terminate) = wallet_args::main(
-   argc, argv,
-   "monero-gen-multisig [(--testnet|--stagenet)] [--filename-base=<filename>] [--scheme=M/N] [--threshold=M] [--participants=N]",
-    genms::tr("This program generates a set of multisig wallets - use this simpler scheme only if all the participants trust each other"),
-    desc_params,
-    boost::program_options::positional_options_description(),
-    [](const std::string &s, bool emphasis){ tools::scoped_message_writer(emphasis ? epee::console_color_white : epee::console_color_default, true) << s; },
-    "monero-gen-multisig.log"
-  );
+    argc, argv,
+    "rackz-gen-multisig [(--testnet|--stagenet)] [--filename-base=<filename>] [--scheme=M/N] [--threshold=M] "
+    "[--participants=N]",
+    genms::tr("This program generates a set of multisig wallets - use this simpler scheme only if all the participants "
+              "trust each other"),
+    desc_params, boost::program_options::positional_options_description(), [](const std::string& s, bool emphasis)
+    { tools::scoped_message_writer(emphasis ? epee::console_color_white : epee::console_color_default, true) << s; },
+    "rackz-gen-multisig.log");
   if (!vm)
     return 1;
   if (should_terminate)
@@ -201,7 +213,8 @@ int main(int argc, char* argv[])
   {
     if (threshold)
     {
-      tools::fail_msg_writer() << genms::tr("Error: either --scheme or both of --threshold and --participants may be given");
+      tools::fail_msg_writer() << genms::tr(
+        "Error: either --scheme or both of --threshold and --participants may be given");
       return 1;
     }
     threshold = command_line::get_arg(*vm, arg_threshold);
@@ -210,14 +223,17 @@ int main(int argc, char* argv[])
   {
     if (total)
     {
-      tools::fail_msg_writer() << genms::tr("Error: either --scheme or both of --threshold and --participants may be given");
+      tools::fail_msg_writer() << genms::tr(
+        "Error: either --scheme or both of --threshold and --participants may be given");
       return 1;
     }
     total = command_line::get_arg(*vm, arg_participants);
   }
   if (threshold <= 1 || threshold > total)
   {
-    tools::fail_msg_writer() << (boost::format(genms::tr("Error: expected N > 1 and N <= M, but got N==%u and M==%d")) % threshold % total).str();
+    tools::fail_msg_writer() << (boost::format(genms::tr("Error: expected N > 1 and N <= M, but got N==%u and M==%d")) %
+                                 threshold % total)
+                                  .str();
     return 1;
   }
   if (!(*vm)["filename-base"].defaulted() && !command_line::get_arg(*vm, arg_filename_base).empty())
@@ -231,7 +247,11 @@ int main(int argc, char* argv[])
   }
 
   bool create_address_file = command_line::get_arg(*vm, arg_create_address_file);
-  if (!generate_multisig(threshold, total, basename, testnet ? TESTNET : stagenet ? STAGENET : MAINNET, create_address_file))
+  if (!generate_multisig(threshold, total, basename,
+                         testnet    ? TESTNET
+                         : stagenet ? STAGENET
+                                    : MAINNET,
+                         create_address_file))
     return 1;
 
   return 0;

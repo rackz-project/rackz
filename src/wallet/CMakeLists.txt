@@ -1,4 +1,5 @@
-# Copyright (c) 2014-2024, The Monero Project
+# Copyright (c) 2026-present, The Rackz Project
+# Portions Copyright (c) 2014-2024, The Monero Project
 #
 # All rights reserved.
 #
@@ -97,7 +98,7 @@ if(NOT IOS)
       ${EXTRA_LIBRARIES})
   set_property(TARGET wallet_rpc_server
     PROPERTY
-      OUTPUT_NAME "monero-wallet-rpc")
+      OUTPUT_NAME "rackz-wallet-rpc")
   install(TARGETS wallet_rpc_server DESTINATION bin)
 endif()
 

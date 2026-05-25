@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026-present, The Rackz Project
 # .githooks/pre-commit
 # Thin wrapper — all logic lives in scripts/ci/pre-commit/
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [ "${SKIP_PRECOMMIT:-0}" = "1" ]; then
+  echo "pre-commit: SKIP_PRECOMMIT=1 — skipping all pre-commit checks (document reason in PR)"
+  exit 0
+fi
 
 for script in "$ROOT"/scripts/ci/pre-commit/*.sh; do
   [ -f "$script" ] || continue

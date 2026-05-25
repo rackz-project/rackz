@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2024, The Monero Project
+// Copyright (c) 2026-present, The Rackz Project
+// Portions Copyright (c) 2014-2024, The Monero Project
 //
 // All rights reserved.
 //
@@ -55,15 +56,25 @@ namespace
   class Print
   {
   public:
-    Print(const std::function<void(const std::string&, bool)> &p, bool em = false): print(p), emphasis(em) {}
+    Print(const std::function<void(const std::string&, bool)>& p, bool em = false)
+      : print(p)
+      , emphasis(em)
+    {
+    }
     ~Print() { print(ss.str(), emphasis); }
-    template<typename T> std::ostream &operator<<(const T &t) { ss << t; return ss; }
+    template <typename T>
+    std::ostream& operator<<(const T& t)
+    {
+      ss << t;
+      return ss;
+    }
+
   private:
-    const std::function<void(const std::string&, bool)> &print;
+    const std::function<void(const std::string&, bool)>& print;
     std::stringstream ss;
     bool emphasis;
   };
-}
+} // namespace
 
 namespace wallet_args
 {
@@ -87,29 +98,31 @@ namespace wallet_args
   }
 
   std::pair<boost::optional<boost::program_options::variables_map>, bool> main(
-    int argc, char** argv,
-    const char* const usage,
-    const char* const notice,
+    int argc, char** argv, const char* const usage, const char* const notice,
     boost::program_options::options_description desc_params,
     const boost::program_options::positional_options_description& positional_options,
-    const std::function<void(const std::string&, bool)> &print,
-    const char *default_log_name,
-    bool log_to_console)
-  
+    const std::function<void(const std::string&, bool)>& print, const char* default_log_name, bool log_to_console)
+
   {
     namespace bf = boost::filesystem;
     namespace po = boost::program_options;
 #ifdef WIN32
-    _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
     const command_line::arg_descriptor<std::string> arg_log_level = {"log-level", "0-4 or categories", ""};
-    const command_line::arg_descriptor<std::size_t> arg_max_log_file_size = {"max-log-file-size", "Specify maximum log file size [B]", MAX_LOG_FILE_SIZE};
-    const command_line::arg_descriptor<std::size_t> arg_max_log_files = {"max-log-files", "Specify maximum number of rotated log files to be saved (no limit by setting to 0)", MAX_LOG_FILES};
-    const command_line::arg_descriptor<uint32_t> arg_max_concurrency = {"max-concurrency", wallet_args::tr("Max number of threads to use for a parallel job"), DEFAULT_MAX_CONCURRENCY};
-    const command_line::arg_descriptor<std::string> arg_log_file = {"log-file", wallet_args::tr("Specify log file"), ""};
-    const command_line::arg_descriptor<std::string> arg_config_file = {"config-file", wallet_args::tr("Config file"), "", true};
-
+    const command_line::arg_descriptor<std::size_t> arg_max_log_file_size = {"max-log-file-size",
+                                                                             "Specify maximum log file size [B]",
+                                                                             MAX_LOG_FILE_SIZE};
+    const command_line::arg_descriptor<std::size_t> arg_max_log_files = {
+      "max-log-files", "Specify maximum number of rotated log files to be saved (no limit by setting to 0)",
+      MAX_LOG_FILES};
+    const command_line::arg_descriptor<uint32_t> arg_max_concurrency = {
+      "max-concurrency", wallet_args::tr("Max number of threads to use for a parallel job"), DEFAULT_MAX_CONCURRENCY};
+    const command_line::arg_descriptor<std::string> arg_log_file = {"log-file", wallet_args::tr("Specify log file"),
+                                                                    ""};
+    const command_line::arg_descriptor<std::string> arg_config_file = {"config-file", wallet_args::tr("Config file"),
+                                                                       "", true};
 
     std::string lang = i18n_get_language();
     tools::on_startup();
@@ -131,53 +144,56 @@ namespace wallet_args
     command_line::add_arg(desc_params, arg_max_concurrency);
     command_line::add_arg(desc_params, arg_config_file);
 
-    i18n_set_language("translations", "monero", lang);
+    i18n_set_language("translations", "rackz", lang);
 
     po::options_description desc_all;
     desc_all.add(desc_general).add(desc_params);
     po::variables_map vm;
     bool should_terminate = false;
-    bool r = command_line::handle_error_helper(desc_all, [&]()
-    {
-      auto parser = po::command_line_parser(argc, argv).options(desc_all).positional(positional_options);
-      po::store(parser.run(), vm);
+    bool r = command_line::handle_error_helper(
+      desc_all,
+      [&]()
+      {
+        auto parser = po::command_line_parser(argc, argv).options(desc_all).positional(positional_options);
+        po::store(parser.run(), vm);
 
-      if (command_line::get_arg(vm, command_line::arg_help))
-      {
-        Print(print) << "Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << ENDL;
-        Print(print) << wallet_args::tr("This is the command line monero wallet. It needs to connect to a monero\n"
-												  "daemon to work correctly.") << ENDL;
-        Print(print) << wallet_args::tr("Usage:") << ENDL << "  " << usage;
-        Print(print) << desc_all;
-        should_terminate = true;
-        return true;
-      }
-      else if (command_line::get_arg(vm, command_line::arg_version))
-      {
-        Print(print) << "Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")";
-        should_terminate = true;
-        return true;
-      }
-
-      if(command_line::has_arg(vm, arg_config_file))
-      {
-        std::string config = command_line::get_arg(vm, arg_config_file);
-        bf::path config_path(config);
-        boost::system::error_code ec;
-        if (bf::exists(config_path, ec))
+        if (command_line::get_arg(vm, command_line::arg_help))
         {
-          po::store(po::parse_config_file<char>(config_path.string<std::string>().c_str(), desc_params), vm);
+          Print(print) << "Rackz '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << ENDL;
+          Print(print) << wallet_args::tr("This is the command line rackz wallet. It needs to connect to a rackz\n"
+                                          "daemon to work correctly.")
+                       << ENDL;
+          Print(print) << wallet_args::tr("Usage:") << ENDL << "  " << usage;
+          Print(print) << desc_all;
+          should_terminate = true;
+          return true;
         }
-        else
+        else if (command_line::get_arg(vm, command_line::arg_version))
         {
-          MERROR(wallet_args::tr("Can't find config file ") << config);
-          return false;
+          Print(print) << "Rackz '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")";
+          should_terminate = true;
+          return true;
         }
-      }
 
-      po::notify(vm);
-      return true;
-    });
+        if (command_line::has_arg(vm, arg_config_file))
+        {
+          std::string config = command_line::get_arg(vm, arg_config_file);
+          bf::path config_path(config);
+          boost::system::error_code ec;
+          if (bf::exists(config_path, ec))
+          {
+            po::store(po::parse_config_file<char>(config_path.string<std::string>().c_str(), desc_params), vm);
+          }
+          else
+          {
+            MERROR(wallet_args::tr("Can't find config file ") << config);
+            return false;
+          }
+        }
+
+        po::notify(vm);
+        return true;
+      });
     if (!r)
       return {boost::none, true};
 
@@ -189,7 +205,8 @@ namespace wallet_args
       log_path = command_line::get_arg(vm, arg_log_file);
     else
       log_path = mlog_get_default_log_path(default_log_name);
-    mlog_configure(log_path, log_to_console, command_line::get_arg(vm, arg_max_log_file_size), command_line::get_arg(vm, arg_max_log_files));
+    mlog_configure(log_path, log_to_console, command_line::get_arg(vm, arg_max_log_file_size),
+                   command_line::get_arg(vm, arg_max_log_files));
     if (!command_line::is_arg_defaulted(vm, arg_log_level))
     {
       mlog_set_log(command_line::get_arg(vm, arg_log_level).c_str());
@@ -205,13 +222,13 @@ namespace wallet_args
     if (!command_line::is_arg_defaulted(vm, arg_max_concurrency))
       tools::set_max_concurrency(command_line::get_arg(vm, arg_max_concurrency));
 
-    Print(print) << "Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")";
+    Print(print) << "Rackz '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")";
 
     if (!command_line::is_arg_defaulted(vm, arg_log_level))
       MINFO("Setting log level = " << command_line::get_arg(vm, arg_log_level));
     else
     {
-      const char *logs = getenv("MONERO_LOGS");
+      const char* logs = getenv("RACKZ_LOGS");
       MINFO("Setting log levels = " << (logs ? logs : "<default>"));
     }
     MINFO(wallet_args::tr("Logging to: ") << log_path);
@@ -219,13 +236,14 @@ namespace wallet_args
     Print(print) << boost::format(wallet_args::tr("Logging to %s")) % log_path;
 
     const ssize_t lockable_memory = tools::get_lockable_memory();
-    if (lockable_memory >= 0 && lockable_memory < 256 * 4096) // 256 pages -> at least 256 secret keys and other such small/medium objects
+    if (lockable_memory >= 0 &&
+        lockable_memory < 256 * 4096) // 256 pages -> at least 256 secret keys and other such small/medium objects
       Print(print) << tr("WARNING: You may not have a high enough lockable memory limit")
 #ifdef ELPP_OS_UNIX
-        << ", " << tr("see ulimit -l")
+                   << ", " << tr("see ulimit -l")
 #endif
         ;
 
     return {std::move(vm), should_terminate};
   }
-}
+} // namespace wallet_args

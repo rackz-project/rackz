@@ -1,21 +1,21 @@
 // Copyright (c) 2017-2024, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -37,25 +37,16 @@
 
 namespace tools
 {
-  bool check_updates(const std::string &software, const std::string &buildtag, std::string &version, std::string &hash)
+  bool check_updates(const std::string& software, const std::string& buildtag, std::string& version, std::string& hash)
   {
     std::vector<std::string> records;
     bool found = false;
 
     MDEBUG("Checking updates for " << buildtag << " " << software);
 
-    // All four MoneroPulse domains have DNSSEC on and valid
-    static const std::vector<std::string> dns_urls = {
-        "updates.moneropulse.org",
-        "updates.moneropulse.net",
-        "updates.moneropulse.fr",
-        "updates.moneropulse.de",
-        "updates.moneropulse.co",
-        "updates.moneropulse.ch",
-        "updates.moneropulse.se"
-    };
+    static const std::vector<std::string> dns_urls = {};
 
-    if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls))
+    if (dns_urls.empty() || !tools::dns_utils::load_txt_records_from_dns(records, dns_urls))
       return false;
 
     for (const auto& record : records)
@@ -72,7 +63,7 @@ namespace tools
         continue;
 
       bool alnum = true;
-      for (auto c: fields[3])
+      for (auto c : fields[3])
         if (!isalnum(c))
           alnum = false;
       if (fields[3].size() != 64 && !alnum)
@@ -100,23 +91,26 @@ namespace tools
     return found;
   }
 
-  std::string get_update_url(const std::string &software, const std::string &subdir, const std::string &buildtag, const std::string &version, bool user)
+  std::string get_update_url(const std::string& software, const std::string& subdir, const std::string& buildtag,
+                             const std::string& version, bool user)
   {
-    const char *base = user ? "https://downloads.getmonero.org/" : "https://updates.getmonero.org/";
+    const char* base = user ? "https://downloads.rackz.io/" : "https://updates.rackz.io/";
 #ifdef _WIN32
-    static const char *extension = strncmp(buildtag.c_str(), "source", 6) ? (strncmp(buildtag.c_str(), "install-", 8) ? ".zip" : ".exe") : ".tar.bz2";
+    static const char* extension = strncmp(buildtag.c_str(), "source", 6)
+                                     ? (strncmp(buildtag.c_str(), "install-", 8) ? ".zip" : ".exe")
+                                     : ".tar.bz2";
 #elif defined(__APPLE__)
-    static const char *extension = strncmp(software.c_str(), "monero-gui", 10) ? ".tar.bz2" : ".dmg";
+    static const char* extension = strncmp(software.c_str(), "rackz-gui", 9) ? ".tar.bz2" : ".dmg";
 #else
     static const char extension[] = ".tar.bz2";
 #endif
 
     std::string url;
 
-    url =  base;
+    url = base;
     if (!subdir.empty())
       url += subdir + "/";
     url = url + software + "-" + buildtag + "-v" + version + extension;
     return url;
   }
-}
+} // namespace tools

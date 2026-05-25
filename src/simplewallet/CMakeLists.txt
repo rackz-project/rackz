@@ -1,4 +1,5 @@
-# Copyright (c) 2014-2024, The Monero Project
+# Copyright (c) 2026-present, The Rackz Project
+# Portions Copyright (c) 2014-2024, The Monero Project
 #
 # All rights reserved.
 #
@@ -61,5 +62,5 @@ target_link_libraries(simplewallet
     ${EXTRA_LIBRARIES})
 set_property(TARGET simplewallet
   PROPERTY
-    OUTPUT_NAME "monero-wallet-cli")
+    OUTPUT_NAME "rackz-wallet-cli")
 install(TARGETS simplewallet DESTINATION bin)
