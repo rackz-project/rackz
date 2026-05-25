@@ -1,0 +1,4 @@
+# Functions inherited from upstream Monero that exceed complexity thresholds.
+# Do NOT add new Rackz-authored functions here — fix them instead.
+# Format: one function name per line (matched as substring against clang-tidy warning lines).
+check_tx_proof

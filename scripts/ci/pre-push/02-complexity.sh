@@ -52,13 +52,33 @@ check_complexity() {
   done
 }
 
+# Load inherited-function allowlist — one function name per line
+IGNORE_FILE="$ROOT/.complexity-ignore"
+build_ignore_pattern() {
+  [ -f "$IGNORE_FILE" ] || { echo ''; return; }
+  grep -v '^#' "$IGNORE_FILE" | grep -v '^[[:space:]]*$' | paste -sd '|' -
+}
+IGNORE_PATTERN="$(build_ignore_pattern)"
+
+filter_warnings() {
+  local input="$1"
+  if [ -z "$IGNORE_PATTERN" ]; then
+    echo "$input"
+    return
+  fi
+  # Drop warning lines (and their note continuations) for ignored functions.
+  # A warning block starts with "warning:" and ends before the next "warning:" or EOF.
+  echo "$input" | grep -vE "$IGNORE_PATTERN" || true
+}
+
 ERRORS=0
 for result in \
     "$(check_complexity crypto 15)" \
     "$(check_complexity ringct 20)" \
     "$(check_complexity cryptonote_core 30)"; do
-  if echo "$result" | grep -q "warning:"; then
-    echo "$result"
+  filtered="$(filter_warnings "$result")"
+  if echo "$filtered" | grep -q "warning:"; then
+    echo "$filtered"
     ((ERRORS++)) || true
   fi
 done
@@ -66,5 +86,6 @@ done
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
   echo "Complexity threshold exceeded. Refactor the flagged functions."
+  echo "Pre-fork inherited functions can be allowlisted in .complexity-ignore"
   exit 1
 fi
